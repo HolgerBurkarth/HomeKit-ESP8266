@@ -1,0 +1,89 @@
+﻿# Apple HomeKit Garage Door Opener as an IoT Device
+
+![GitHub release](https://img.shields.io/github/release/HolgerBurkarth/HomeKit-ESP8266.svg)  
+Author: Holger Burkarth (burkarth at prodad.com)
+
+
+> :bulb: See also [Project README](../../README.md) for more information.
+
+This example shows a garage door opener that can be controlled by
+Apple HomeKit. The device uses the same function as a traditional
+button to open the door. An ultrasonic distance sensor monitors
+the position of the door to tell Apple HomeKit whether the door
+is closed, open, or half open.
+
+> New or different functions can be configured via CHost, derived
+from CUnitBase, so that only a small amount of programming is
+required, e.g. to detect the door position via limit switches or
+to start the door motor other than by a pulse.
+
+
+## Installation of the box and wiring of the door operator
+
+The project can be used to control garage doors of this type.  
+![Door](../../media/en-hw-garage01.jpg)
+
+The garage door opener is installed in a black box (left) and connected to the door operator.  
+![Door Ctrl](../../media/en-hw-garage04.jpg)
+
+Power is supplied from the AC 24V provided by the door operator. As standard the door is
+operated by a push button. A short pulse is sent to the door operator. The same cable
+is also connected to the IoT device.  
+> :exclamation: Important: The ultrasonic distance sensor must be aligned so that the
+top of the door is detected when the door is closed and the maximum distance is measured
+when the door is closed.
+
+
+## IoT device with PCB
+
+![Box](../../media/en-hw-garage05.jpg)
+
+![Inner](../../media/en-hw-garage06.jpg)
+
+![PCB front](../../media/en-hw-garage03.jpg)
+
+![PCB back](../../media/en-hw-garage02.jpg)
+
+
+
+## Compile and upload
+
+The configuration of the garage door opener is done in the file `GarageDoor.h`. The following settings are available:
+
+```cpp
+/*
+* @brief This pin is used to start the door motor by pulling the trigger pin HIGH for 100 ms.
+* @note Make sure that this pin is set to LOW during booting so that
+*       no trigger pulse is sent when restarting.
+*       For example: D2 would be possible, but not D3.
+*/
+#define DOOR_PIN  D2
+
+
+/* @brief The unit reads the door position from an ultrasonic sensor.
+* The sensor is mounted at the top of the door and measures the distance to the door.
+* @note Sensor: HC-SR04 Ultrasonic Sensor
+* @node The EchoPin must be connected to an interrupt pin. (e.g.: D8)
+*/
+#define TRIGGER_PIN D7
+#define ECHO_PIN    D8 // must be interrupt capable
+
+```
+
+## Start-up and configuration of the device
+
+1. The first step is to locate the closed and open positions of the door.
+To do this, press the `OPEN` or `CLOSE` button to move the door.  
+![Door moves](../../media/en-hp-garage03.jpg)
+
+2. After reaching the end position, wait until a flat line appears on the graph.
+The `SET NEW OPEN` or `SET NEW CLOSE` button will appear. Press this button to save
+the current position as `OPEN` or `CLOSE`. Repeat the procedure for the other
+direction to set the `OPEN` and `CLOSE` positions.  
+![At Stop position](../../media/en-hp-garage02.jpg)
+
+3. Now press the `SAVE` button.
+
+> :exclamation: Captured position data must be stored permanently.  
+> :bulb: Reverse `OPEN` and `CLOSE` can be corrected using the `SWAP` button.  
+> :bulb: The `SAVE` button permanently saves the current information and the `LOAD` button loads the last saved items.
