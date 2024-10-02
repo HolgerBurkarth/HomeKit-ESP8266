@@ -356,10 +356,7 @@ template<> constexpr bool is_value_typeof<const char*>(const homekit_value_t& va
 * @return The value of the homekit_value_t as the specific type
 * @example bool b = static_value_cast<bool>(value);
 * @note The value is not checked for the specific type.
-* @example
-*  - homekit_value_t z = static_value_cast(v, true);
-*  - homekit_value_t z = static_value_cast(v, HOMEKIT_CURRENT_DOOR_STATE{});
-*  - bool z = static_value_cast<bool>(v, homekit_value_t{});
+* @example bool z = static_value_cast<bool>(homekit_value_t{});
 */
 template<typename T>
 constexpr T static_value_cast(const homekit_value_t& value) noexcept;
@@ -367,11 +364,12 @@ template<typename T>
 constexpr T static_value_cast(const homekit_characteristic_t* ch) noexcept;
 
 
-/* Cast a homekit_value_t to a specific type
+/* Cast a homekit_value_t to a specific type reference
 * @param value The homekit_value_t to cast
 * @return The value of the homekit_value_t as the specific type
 * @example static_value_ref_cast<bool>(value) = true
 * @see modify_value<T>
+* @note Only available for types that has a location in the homekit_value_t-union
 */
 template<typename T>
 constexpr T& static_value_ref_cast(homekit_value_t& value) noexcept;
@@ -2147,22 +2145,22 @@ struct CHtmlWebSiteMenuItem
 {
   using CGetBool = std::function<bool()>;
 
-  const char* Title;    // Optional: Title of the website: e.g. "HomeKit Device"
-  const char* MenuName; // Name of the menu item: e.g. "Settings"
+  const char* Title{};    // Optional: Title of the website: e.g. "HomeKit Device"
+  const char* MenuName{}; // Name of the menu item: e.g. "Settings"
 
   /* ID of the menu item (as URI).
   * "/" means the root menu
   * @note Must start with a slash!
   * @example "/settings"
   */
-  const char* URI;
+  const char* URI{};
 
   /* Pages that are smaller than 10kb must be marked.
   * @note Important for servers that do not support HTTP1.1 and the page
   * length must be known before sending. This means that the page
   * must be completely available in the main memory.  
   */
-  bool       LowMemoryUsage{};
+  bool        LowMemoryUsage{};
 
   /* Optional menu item ID (for easy access),
   * negative values are forbidden

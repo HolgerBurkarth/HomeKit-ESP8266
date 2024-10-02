@@ -116,11 +116,13 @@ Read more: [Garage Door Opener Project](./examples/GarageDoor/README.md)
 > - `RESET-PAIRING` - clear all pairing data
 > - `FORMAT-FILESYSTEM` - clear the EEPROM stored data, but not the pairing data
 
+---
 
 ### Log web page
 
 ![Door](./media/en-hp-log.jpg)
 
+---
 
 ### Storage
 
@@ -135,6 +137,8 @@ Read more: [Garage Door Opener Project](./examples/GarageDoor/README.md)
 * VTables: `Flash` (may not matter)
 * Erase Flash: select `All Flash Contents` on first upload
 * CPU frequency: `160MHz` (must)
+
+---
 
 ### Troubleshooting
 

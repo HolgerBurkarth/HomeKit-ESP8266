@@ -124,7 +124,7 @@ Information about the device and its control options.
 
 Special information about HomeKit and the ability to change states to test
 the behavior of Apple Home and the door opener.  
-![Door moves](../../media/en-hp-garage05.jpg)
+![Door moves](../../media/en-hp-garage04.jpg)
 
 > [!NOTE]
 >  - Target

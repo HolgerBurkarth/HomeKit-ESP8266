@@ -896,15 +896,15 @@ struct CGarageDoorOpenerService : ISystem
     Name{ HOMEKIT_DECLARE_CHARACTERISTIC_NAME(params.Name) },
     Service
     {
-        {
-            .type = HOMEKIT_SERVICE_GARAGE_DOOR_OPENER,
-            .primary = true
-        },
+      {
+        .type = HOMEKIT_SERVICE_GARAGE_DOOR_OPENER,
+        .primary = true
+      },
 
-        &CurrentState,
-        &TargetState,
-        &ObstructionDetected,
-        &Name
+      &CurrentState,
+      &TargetState,
+      &ObstructionDetected,
+      &Name
     }
   {
   }
@@ -913,27 +913,26 @@ struct CGarageDoorOpenerService : ISystem
   CGarageDoorOpenerService(IUnit* pCtrl, const char* name = nullptr) noexcept
     : CGarageDoorOpenerService
     ({
-        .Name = name ? name : "Door",
-        .UserPtr = reinterpret_cast<void*>(pCtrl),
+      .Name = name ? name : "Door",
+      .UserPtr = reinterpret_cast<void*>(pCtrl),
 
-        .TargetStateSetter = [](homekit_characteristic_t* pC, homekit_value_t value)
+      .TargetStateSetter = [](homekit_characteristic_t* pC, homekit_value_t value)
+      {
+        auto Unit = reinterpret_cast<IUnit*>(pC->UserPtr);
+        if(modify_value(pC, value))
         {
-            auto Unit = reinterpret_cast<IUnit*>(pC->UserPtr);
-            if(modify_value(pC, value))
-            {
-                if(Unit)
-                {
-                    HOMEKIT_TARGET_DOOR_STATE Stat = static_value_cast<HOMEKIT_TARGET_DOOR_STATE>(value);
-                    IUnit::CTargetStateArgs Args = Stat;
-                    Unit->OnTargetStateChanged(Args);
-                }
-            }
-        },
+          if(Unit)
+          {
+            HOMEKIT_TARGET_DOOR_STATE Stat = static_value_cast<HOMEKIT_TARGET_DOOR_STATE>(value);
+            IUnit::CTargetStateArgs Args = Stat;
+            Unit->OnTargetStateChanged(Args);
+          }
+        }
+      },
 
-      })
+    })
   {
   }
-
 
   #pragma endregion
 
@@ -1020,8 +1019,8 @@ struct CGarageDoorOpenerService : ISystem
       Unit->Setup
       (
         {
-            .System = this,
-            .Ctrl = &CHomeKit::Singleton->Controller
+          .System = this,
+          .Ctrl = &CHomeKit::Singleton->Controller
         }
       );
       {
