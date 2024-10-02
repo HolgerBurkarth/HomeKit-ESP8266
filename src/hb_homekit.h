@@ -3,7 +3,7 @@
 $CRT 09 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.h<< 01 Okt 2024  07:01:55 - (c) proDAD
+$DAT >>hb_homekit.h<< 02 Okt 2024  08:24:59 - (c) proDAD
 
 using namespace HBHomeKit;
 *******************************************************************/
@@ -1186,11 +1186,22 @@ inline CTextEmitter MakeTextEmitter(const __FlashStringHelper* text)
 }
 inline CTextEmitter MakeTextEmitter(const String& text)
 {
-  return [text](Stream& p) { p << text; };
+  return [text](Stream& p)
+    { 
+      //WARNING: Stream<<"" causes problems! : 2024-10-02 Core 3.1.2
+      if(!text.isEmpty()) 
+        p << text; 
+    };
 }
 inline CTextEmitter MakeTextEmitter(String&& text)
 {
-  return [text = std::move(text)](Stream& p) { p << text; };
+  return [text = std::move(text)](Stream& p)
+    {
+      //WARNING: Stream<<"" causes problems! : 2024-10-02 Core 3.1.2
+      if(!text.isEmpty())
+        p << text;
+    };
+
 }
 inline CTextEmitter MakeTextEmitter()
 {
@@ -2029,6 +2040,11 @@ public:
   void SetPasswordEnumerator(IPasswordEnumerator_Ptr passwordEnumerator)
   {
     mPasswordEnumerator = std::move(passwordEnumerator);
+  }
+
+  bool HasPasswordEnumerator() const
+  {
+    return mPasswordEnumerator != nullptr;
   }
 
   WiFiMode_t GetRecomendedMode() const
@@ -3620,6 +3636,11 @@ std::vector<String> Split(const String& text, char sep);
 
 #pragma region AddWiFiLoginMenu
 /* Adds a menu (WiFi) that allows the user to connect to a WiFi network.
+* @param alwaysUsePeristentLogin
+*       If true, the persistent password enumerator is always used.
+*       If False, an already set password enumerator is not changed.
+*       @see CreatePasswordEnumerator(), Constructor of CController
+*       @note Mainly used for testing, debugging and simulating AP-WiFi situations
 * @note Following variables will be supplied:
 * - WLOGIN_SSID: The SSID of the first WiFi network to connect to.
 * - WLOGIN_PASSWORD: The password of the first WiFi network to connect to.
@@ -3631,10 +3652,15 @@ std::vector<String> Split(const String& text, char sep);
 * - /wifi: Displays a page with a list of available WIFIs.
 * - /wlogin: Displays a page to enter the password for the selected WiFi network.
 * @note
-*   A persistent password enumerator is installed. This replaces any previously installed enumerator.
-*     @see CWiFiConnection::SetPasswordEnumerator
+*   Should be called before any other menus are added so that the 'WiFi' menu item
+    is displayed as the first page in AP WiFi mode.  
+* @note
+*   A persistent password enumerator is installed. This replaces any previously
+*   installed enumerator.
+*
+* @see CWiFiConnection::SetPasswordEnumerator
 */
-CController& AddWiFiLoginMenu(CController&);
+CController& AddWiFiLoginMenu(CController&, bool alwaysUsePeristentLogin = true);
 
 #pragma endregion
 

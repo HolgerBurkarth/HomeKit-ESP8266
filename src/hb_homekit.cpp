@@ -1561,7 +1561,7 @@ void CController::ExpandVariables(Stream& out, const String& _inputText) const
 
   auto WriteChar = [&out](char c) { out.write(&c, 1); };
   auto WriteString = [&out](const String& s) { out.write(s.c_str(), s.length()); };
-  auto WriteEmitter = [&out](CTextEmitter e) { e(out); };
+  auto WriteEmitter = [&out](CTextEmitter&& e) { e(out); };
 
   for(Pos = 0; InputText[Pos]; )
   {

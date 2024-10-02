@@ -124,11 +124,11 @@ void setup()
   // Installs and configures everything for CGarageDoorOpenerService.
   InstallAndSetupGarageDoorOpener(HomeKit, Door, Host);
 
-  // Adds standard menu items to the controller.
-  AddStandardMenus(HomeKit);
-
   // Adds a menu (WiFi) that allows the user to connect to a WiFi network.
   AddWiFiLoginMenu(HomeKit);
+
+  // Adds standard menu items to the controller.
+  AddStandardMenus(HomeKit);
 
   // Installs the action UI, required for garage/WiFi web-pages.
   InstallActionUI(HomeKit);

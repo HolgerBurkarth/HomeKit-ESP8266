@@ -1,10 +1,14 @@
-﻿# Apple HomeKit Garage Door Opener as an IoT Device
+﻿# Apple HomeKit Garage Door Opener as an IoT Device  
 
-![GitHub release](https://img.shields.io/github/release/HolgerBurkarth/HomeKit-ESP8266.svg)  
+---
+
+ Navigation | [General Documentation](../../README.md) | **Garage Door Opener** |
+|-|-|-|  
+
+
+![GitHub Release](https://img.shields.io/github/v/release/HolgerBurkarth/main)  
 Author: Holger Burkarth (burkarth at prodad.com)
 
-
-> :bulb: See also [Project README](../../README.md) for more information.
 
 This example shows a garage door opener that can be controlled by
 Apple HomeKit. The device uses the same function as a traditional

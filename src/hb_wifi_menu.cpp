@@ -3,7 +3,7 @@
 $CRT 17 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_wifi_menu.cpp<< 30 Sep 2024  14:44:40 - (c) proDAD
+$DAT >>hb_wifi_menu.cpp<< 02 Okt 2024  07:41:03 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -204,8 +204,8 @@ struct CWifiLoginContext : IPasswordEnumerator
   #pragma region LoadFromEEPROM
   void LoadFromEEPROM()
   {
-    uint8_t Buf[std::max(MaxSSIDLength, MaxPasswordLength) + 1]; // +1 for the null terminator
-    char Name[5];
+    uint8_t Buf[std::max(MaxSSIDLength, MaxPasswordLength) + 1]; // +1 for null terminator
+    char Name[4+1];
     auto FS = std::make_unique<CSimpleFileSystem>();
 
     for(size_t i = 0; i < mItems.size(); ++i)
@@ -219,6 +219,9 @@ struct CWifiLoginContext : IPasswordEnumerator
       snprintf_P(Name, sizeof(Name), PSTR("PAS%d"), i);
       if(FS->ReadFile(Name, Buf, MaxPasswordLength) > 0)
         mItems[i].Password = (const char*)Buf;
+
+      //Serial.printf("SSID: \"%.50s\"  Password: \"%.50s\"\n", mItems[i].SSID.c_str(), mItems[i].Password.c_str());
+
     }
 
   }
@@ -229,7 +232,7 @@ struct CWifiLoginContext : IPasswordEnumerator
   void SaveToEEPROM()
   {
     uint8_t Buf[std::max(MaxSSIDLength, MaxPasswordLength) + 1]; // +1 for the null terminator
-    char Name[5];
+    char Name[4+1];
     auto FS = std::make_unique<CSimpleFileSystem>();
 
     for(size_t i = 0; i < mItems.size(); ++i)
@@ -261,20 +264,24 @@ struct CWifiLoginContext : IPasswordEnumerator
 } // namespace
 
 
-CController& AddWiFiLoginMenu(CController& c)
+CController& AddWiFiLoginMenu(CController& c, bool alwaysUsePeristentLogin)
 {
+  auto& WifiConnection = CHomeKit::Singleton->WifiConnection;
   auto Ctx = std::make_shared<CWifiLoginContext>();
   Ctx->LoadFromEEPROM();
 
   #pragma region ActivateOwnPasswordEnumerator
-  auto ActivateOwnPasswordEnumerator = [Ctx]()
+  auto ActivateOwnPasswordEnumerator = [&]()
     {
-      CHomeKit::Singleton->WifiConnection.SetPasswordEnumerator(Ctx);
+      WifiConnection.SetPasswordEnumerator(Ctx);
     };
 
   #pragma endregion
 
-  ActivateOwnPasswordEnumerator();
+  /* If the password enumerator is not set, we use our own EEPROM-Based enumerator.
+  */
+  if(alwaysUsePeristentLogin || !WifiConnection.HasPasswordEnumerator())
+    ActivateOwnPasswordEnumerator();
 
   c
 
@@ -288,7 +295,7 @@ CController& AddWiFiLoginMenu(CController& c)
         String SSID = Ctx->GetFirstSSID();
         if(SSID.isEmpty())
           SSID = WiFi.SSID();
-        return MakeTextEmitter(SSID);
+        return MakeTextEmitter(std::move(SSID));
       })
 
     #pragma endregion
@@ -303,7 +310,7 @@ CController& AddWiFiLoginMenu(CController& c)
           if(WiFi.SSID() == Ctx->GetFirstSSID())
             Pass = WiFi.psk();
         }
-        return MakeTextEmitter(Pass);
+        return MakeTextEmitter(std::move(Pass));
       })
 
     #pragma endregion
@@ -431,7 +438,7 @@ CController& AddWiFiLoginMenu(CController& c)
     .AddMenuItem
     (
       {
-        .Title = "Wifi Login",
+        .Title = "WiFi Login",
         .MenuName = "Login",
         .URI = "/wlogin",
         .LowMemoryUsage = true,
@@ -445,12 +452,12 @@ input[type="text"] {
         .Body = MakeTextEmitter(F(R"(
 {FORM_BEGIN}
 <p>Enter Password for {WLOGIN_SSID}</p>
-<input type="text" name="WLOGIN_PASSWORD" value="{WLOGIN_PASSWORD}">
+<input type="text" name="WLOGIN_PASSWORD" value="{WLOGIN_PASSWORD}"/>
 {FORM_CMD:LOGIN}
 
 {FORM_END}
 )")),
-      .Visible = []() -> bool { return false; } // hide this menu; not visible in the menu-bar
+      //.Visible = []() -> bool { return false; } // hide this menu; not visible in the menu-bar
       }
     )
 

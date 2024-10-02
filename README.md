@@ -2,7 +2,7 @@
 
 ## Apple HomeKit accessory server library for ESP8266 Arduino with useful C++ support
 
-![GitHub release](https://img.shields.io/github/release/HolgerBurkarth/HomeKit-ESP8266.svg)  
+![GitHub Release](https://img.shields.io/github/v/release/HolgerBurkarth/main)  
 Author: Holger Burkarth (burkarth at prodad.com)
 
 This Arduino library is a native Apple HomeKit accessory implementation for the
@@ -45,11 +45,6 @@ Apple HomeKit. The device uses the same function as a traditional
 button to open the door. An ultrasonic distance sensor monitors
 the position of the door to tell Apple HomeKit whether the door
 is closed, open, or half open.
-
-> New or different functions can be configured via CHost, derived
-from CUnitBase, so that only a small amount of programming is
-required, e.g. to detect the door position via limit switches or
-to start the door motor other than by a pulse.
 
 Read more: [Garage Door Opener Project](./examples/GarageDoor/README.md)
   
