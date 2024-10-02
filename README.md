@@ -5,12 +5,65 @@
 ![GitHub Release](https://img.shields.io/github/v/release/HolgerBurkarth/main)  
 Author: Holger Burkarth (burkarth at prodad.com)
 
-This Arduino library is a native Apple HomeKit accessory implementation for the
+### Features 
+
+* This Arduino library is a native Apple HomeKit accessory implementation for the
 [ESP8266 Arduino core](https://github.com/esp8266/Arduino) and works without any additional bridges.
 
- > :exclamation: This library was built using the ESP8266 Arduino Core 3.1.2. Lower versions may compile with errors.
+* Simplifies the development of new IoT applications and reduces development, maintenance, and
+debugging time with a comprehensive system.
 
-## Connect to Apple HomeKit:
+* Enables easy deployment of application-specific websites on the IoT device. Navigation is
+described by MenuItems. Each page has its own CSS, JavaScript, and HTML. Elements on a page
+can be continuously updated using JavaScript without having to reload the entire page.
+Buttons and other input elements are easy to create. A possible button reaction can be
+automated through the system and thus greatly simplified.
+
+* Information about the status of the process and problems is output via the serial port.
+In addition, the latest events are recorded in a log and can be read at any time via the website.
+
+* Complete frameworks are provided for special applications, which limit the implementation
+effort to the pure changes. The GarageDoorOpener example is implemented with just a few lines
+of source code. The opener is configured simply by adding units (see Host in GarageDoor.h).
+ 
+ > :exclamation: This library has been compiled with the ESP8266 Arduino Core 3.1.2.
+ Lower versions may compile with errors.
+
+---
+
+## Relevant source code and documentation
+
+The documentation of the types, methods and functions is included in the source code.
+
+- [hb_homekit.h](./src/hb_homekit.h) - General part of the library
+- [HomeKit_GarageDoorOpener.h](./src/HomeKit_GarageDoorOpener.h) - Framework for garage door opener
+    - [GarageDoor.h](./examples/GarageDoor\GarageDoor.h) - Example of a garage door opener
+
+---
+
+## WiFi connection
+
+Before getting started, one of the first steps is to establish a WiFi connection to
+a local wireless network to communicate with Apple Home.
+
+1. If there is no connection yet, the IoT device will set up its own local WiFi.
+Find the name in the WiFi list (in this example, `Garage0002`).
+Log in to that WiFi with the appropriate password (often `11111111`).  
+![WLAN](./media/de-hp-wifi03.jpg)
+
+2. Tap on the `+` button to select an available wireless network.  
+![WiFi](./media/en-hp-wifi01.jpg)
+
+3. Enter the password for the selected network.  
+![Login](./media/en-hp-wifi02.jpg)
+
+Once a connection is established, the logon information is permanently saved in the device. The device will restart automatically.
+
+> :bulb: Stored data can be cleared by `FORMAT-FILESYSTEM` in the `Device` menu.  
+
+---
+
+## Connect to Apple Home
 
 A new IoT device can be registered in just a few steps through the Home app.
 
@@ -33,9 +86,11 @@ In this case, the registration process must be repeated. Try several times if ne
 6. The device is now available in the Home app and can be controlled.  
 ![Overview](./media/de-hk-register05.jpg)
 
+---
+
 ## Examples
 
-### Garage Door Opener
+### 1. Garage Door Opener
 
 ![Garage Door Opener](./media/en-hp-garage01.jpg)
 ![Door](./media/en-hw-garage01.jpg)
@@ -48,8 +103,24 @@ is closed, open, or half open.
 
 Read more: [Garage Door Opener Project](./examples/GarageDoor/README.md)
   
- 
+---
+
 ## Further technical details
+
+### Device information web page
+
+![Door](./media/en-hp-device.jpg)
+
+> [!NOTE]
+> - `REBOOT` - restart the device
+> - `RESET-PAIRING` - clear all pairing data
+> - `FORMAT-FILESYSTEM` - clear the EEPROM stored data, but not the pairing data
+
+
+### Log web page
+
+![Door](./media/en-hp-log.jpg)
+
 
 ### Storage
 
@@ -68,11 +139,19 @@ Read more: [Garage Door Opener Project](./examples/GarageDoor/README.md)
 ### Troubleshooting
 
 * Check your serial output. The library will print debug information to the serial port.
+* Log output is also available on the device's web page.
+* The following conditions are indicated by the blinking pattern of the built-in LED:
+    * `##############--` | When at least one client is connected (WLAN connected, paired and Apple Home Client available)
+    * `##--------------` | When no client is connected (WLAN connected and paired, Apple Home Client not available)
+    * `#-------#-------` | Unpaired to HomeKit (WLAN connected)
+    * `##--##----------` | AP (WiFi Access Point mode)
+    * `#-#-#-#-#-#-#-#-` | Failed to connect to a WLAN (After about 10 seconds, alternatives are tried.)
+
 
 ### Change Log
 
-#### v2.0.0
+#### v2.0.0 (2024-10-01)
 
-* Forked from Mixiaoxiao/Arduino-HomeKit-ESP8266
+* Forked from Mixiao/Arduino-HomeKit-ESP8266
 * Take over the project and make the necessary changes so that it can be compiled under Arduino IDE 2.3.2 (c++14).
 

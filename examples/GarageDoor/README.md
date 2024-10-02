@@ -1,14 +1,10 @@
 ﻿# Apple HomeKit Garage Door Opener as an IoT Device  
 
----
-
- Navigation | [General Documentation](../../README.md) | **Garage Door Opener** |
+ Navigation: | [General Documentation](../../README.md) | **Garage Door Opener** |
 |-|-|-|  
-
 
 ![GitHub Release](https://img.shields.io/github/v/release/HolgerBurkarth/main)  
 Author: Holger Burkarth (burkarth at prodad.com)
-
 
 This example shows a garage door opener that can be controlled by
 Apple HomeKit. The device uses the same function as a traditional
@@ -21,6 +17,7 @@ from CUnitBase, so that only a small amount of programming is
 required, e.g. to detect the door position via limit switches or
 to start the door motor other than by a pulse.
 
+---
 
 ## Installation of the box and wiring of the door operator
 
@@ -30,17 +27,22 @@ The project can be used to control garage doors of this type.
 The garage door opener is installed in a black box (left) and connected to the door operator.  
 ![Door Ctrl](../../media/en-hw-garage04.jpg)
 
-Power is supplied from the AC 24V provided by the door operator. As standard the door is
+Power is supplied from the 24 VAC provided by the door operator. As standard the door is
 operated by a push button. A short pulse is sent to the door operator. The same cable
 is also connected to the IoT device.  
-> :exclamation: Important: The ultrasonic distance sensor must be aligned so that the
+> [!IMPORTANT]
+> The ultrasonic distance sensor must be aligned so that the
 top of the door is detected when the door is closed and the maximum distance is measured
 when the door is closed.
 
+---
 
 ## IoT device with PCB
 
-![Box](../../media/en-hw-garage05.jpg)
+The following images show a prototype.
+
+![Box](../../media/en-hw-garage05.jpg)   
+(3D printed box)
 
 ![Inner](../../media/en-hw-garage06.jpg)
 
@@ -48,7 +50,7 @@ when the door is closed.
 
 ![PCB back](../../media/en-hw-garage02.jpg)
 
-
+---
 
 ## Compile and upload
 
@@ -74,7 +76,9 @@ The configuration of the garage door opener is done in the file `GarageDoor.h`. 
 
 ```
 
-## Start-up and configuration of the device
+---
+
+## `Settings` web page - Configuring the Opener
 
 1. The first step is to locate the closed and open positions of the door.
 To do this, press the `OPEN` or `CLOSE` button to move the door.  
@@ -90,4 +94,48 @@ direction to set the `OPEN` and `CLOSE` positions.
 
 > :exclamation: Captured position data must be stored permanently.  
 > :bulb: Reverse `OPEN` and `CLOSE` can be corrected using the `SWAP` button.  
-> :bulb: The `SAVE` button permanently saves the current information and the `LOAD` button loads the last saved items.
+> :bulb: The `SAVE` button permanently saves the current information and the `LOAD` button loads the last saved items.  
+
+> [!NOTE]
+>  - `TRIGGER` - Send a pulse to the door operator to start the motor 
+>  - `OPEN` - move the door to the open position
+>  - `CLOSE` - move the door to the closed position
+>  - `SET NEW OPEN` - save the current position as `OPEN`
+>  - `SET NEW CLOSE` - save the current position as `CLOSE`
+>  - `SAVE` - save the current settings to EEPROM
+>  - `LOAD` - load the last saved settings from EEPROM
+>  - `SWAP` - exchange `OPEN` and `CLOSE` positions
+
+---
+
+## `Start` web page
+
+Information about the device and its control options.  
+![Door moves](../../media/en-hp-garage05.jpg)
+
+> [!NOTE]
+>  - `TRIGGER` - Send a pulse to the door operator to start the motor 
+>  - `OPEN` - move the door to the open position
+>  - `CLOSE` - move the door to the closed position
+
+---
+
+## `HomeKit` web page
+
+Special information about HomeKit and the ability to change states to test
+the behavior of Apple Home and the door opener.  
+![Door moves](../../media/en-hp-garage05.jpg)
+
+> [!NOTE]
+>  - Target
+>    - `OPEN` - sets the target characteristic state to open
+>    - `CLOSED` - sets the target characteristic state to closed
+>  - Current
+>    - `OPEN` - sets the current characteristic state to open
+>    - `CLOSE` - sets the current characteristic state to close
+>    - `OPENING` - sets the current characteristic state to opening
+>    - `CLOSING` - sets the current characteristic state to closing
+>    - `STOPPED` - sets the current characteristic state to stopped
+>  - ObstructionDetected
+>    - `YES` - sets the obstruction detected characteristic state to true
+>    - `NO` - sets the obstruction detected characteristic state to false

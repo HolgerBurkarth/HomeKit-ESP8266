@@ -55,7 +55,7 @@ using namespace HBHomeKit::GarageDoorOpener;
 *       no trigger pulse is sent when restarting.
 *       For example: D2 would be possible, but not D3.
 */
-#define DOOR_PIN	D2
+#define DOOR_PIN  D2
 
 
 /* @brief The unit reads the door position from an ultrasonic sensor.
