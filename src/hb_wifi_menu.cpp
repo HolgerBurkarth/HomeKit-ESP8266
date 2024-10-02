@@ -457,7 +457,7 @@ input[type="text"] {
 
 {FORM_END}
 )")),
-      //.Visible = []() -> bool { return false; } // hide this menu; not visible in the menu-bar
+      .Visible = []() -> bool { return false; } // hide this menu; not visible in the menu-bar
       }
     )
 

@@ -374,20 +374,22 @@ struct CPositionMarkers::CEPROM_Data
 
 bool CPositionMarkers::EPROM_Load()
 {
+  bool Ret;
   CEPROM_Data Data;
-  if(!SimpleFileSystem::ReadFile("PMAK", Data))
-    return false;
-  if(IsDisabledOrInvalid(Data.Value))
+  Ret = SimpleFileSystem::ReadFile("PMAK", Data);
+  if(!Ret || IsDisabledOrInvalid(Data.Value))
   {
+    Ret = false;
+
+    // set default values
     Data.Value =
     {
-      //CPosRange{ 10, 100 }, CPosRange{ 320, 420 },
-      CPosRange{ 10, 80 }, CPosRange{ 350, 500 },
-      CTravelInfo{15,4,4}
+      CPosRange{ 10, 150 }, CPosRange{ 250, 500 },
+      CTravelInfo{45,8,8}
     };
   }
   *this = Data.Value;
-  return true;
+  return Ret;
 }
 
 bool CPositionMarkers::EPROM_Save() const
@@ -422,7 +424,6 @@ class CControlUnit : public CUnitBase
   CTravelInfo   mTravelInfo{};
   time_t        mLastAtMarkerTime{ 0 }; // Time when the door was last at a marker
 
-  //int16_t mMaxTravelSecs{ 10 }; // Maximum time to travel between stops.
   int16_t mUpdateDoorStateDelayCounter{ 0 }; // Prevent flickering: MovingOrStopped <-> Open/Closed
   int16_t mCountMotorOnByNoMovementTicks{ 0 }; // Checks door is in the end position when the motor is running
 
