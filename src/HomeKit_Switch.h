@@ -3,7 +3,7 @@
 $CRT 27 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>HomeKit_Switch.h<< 27 Sep 2024  17:17:13 - (c) proDAD
+$DAT >>HomeKit_Switch.h<< 03 Okt 2024  15:23:39 - (c) proDAD
 
 using namespace HBHomeKit::Switch;
 *******************************************************************/
@@ -29,17 +29,17 @@ namespace Switch
 *
 CSwitchService Switch
 ({
-    .Name = "SwitchParam",
-    //.Default = false,
-    .Setter = [](const homekit_value_t value)
-    {
-        bool Stat = static_value_cast<bool>(value);
-        digitalWrite(LED_PIN, Stat ? HIGH : LOW);
-    },
-    .Getter = []() -> homekit_value_t
-    {
-        return static_value_cast<bool>(digitalRead(LED_PIN) == HIGH);
-    }
+  .Name = "SwitchParam",
+  //.Default = false,
+  .Setter = [](const homekit_value_t value)
+  {
+    bool Stat = static_value_cast<bool>(value);
+    digitalWrite(LED_PIN, Stat ? HIGH : LOW);
+  },
+  .Getter = []() -> homekit_value_t
+  {
+    return static_value_cast<bool>(digitalRead(LED_PIN) == HIGH);
+  }
 });
 
 */
@@ -71,14 +71,14 @@ struct CSwitchService
     * The User can use this function to switch the device on or off.
     * @param value The new value of the switch
     * @example
-            .Setter = [](homekit_characteristic_t* pC, homekit_value_t value)
-            {
-                if(modify_value(pC, value))
-                {
-                    bool Stat = static_value_cast<bool>(value);
-                    digitalWrite(LED_PIN, Stat ? HIGH : LOW);
-                }
-            },
+        .Setter = [](homekit_characteristic_t* pC, homekit_value_t value)
+        {
+          if(modify_value(pC, value))
+          {
+            bool Stat = static_value_cast<bool>(value);
+            digitalWrite(LED_PIN, Stat ? HIGH : LOW);
+          }
+        },
     *
     */
     void(*Setter)(homekit_characteristic_t*, homekit_value_t) {};
@@ -90,10 +90,10 @@ struct CSwitchService
     *   The User should return the current value of the switch.
     * @return The current value of the switch
     * @example
-            .Getter = [](const homekit_characteristic_t* pC) -> homekit_value_t
-            {
-                return static_value_cast<bool>(digitalRead(LED_PIN) == HIGH);
-            }
+        .Getter = [](const homekit_characteristic_t* pC) -> homekit_value_t
+        {
+          return static_value_cast<bool>(digitalRead(LED_PIN) == HIGH);
+        }
     */
     homekit_value_t(*Getter)(const homekit_characteristic_t*) {};
   };
@@ -110,13 +110,13 @@ struct CSwitchService
     Name{ HOMEKIT_DECLARE_CHARACTERISTIC_NAME(params.Name) },
     Service
     {
-        {
-            .type = HOMEKIT_SERVICE_SWITCH,
-            .primary = true
-        },
+      {
+        .type = HOMEKIT_SERVICE_SWITCH,
+        .primary = true
+      },
 
-        &State,
-        &Name
+      &State,
+      &Name
     }
   {
   }
@@ -131,7 +131,6 @@ struct CSwitchService
 
 
   #pragma endregion
-
 
   #pragma region Operators
   constexpr const homekit_service_t* operator&() const noexcept

@@ -3787,6 +3787,7 @@ CTextEmitter ActionUI_CSS();
 *  HideElement(idOrHd, hide)
 *  DisableElement(idOrHd, disable)
 *  SetElementInnerHTML(idOrHd, text)
+*  SetElementChecked(idOrHd, boolValue)
 *  LogDebug(txt)
 *
 * Strings:

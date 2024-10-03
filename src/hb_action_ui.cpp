@@ -3,7 +3,7 @@
 $CRT 18 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_action_ui.cpp<< 28 Sep 2024  10:56:33 - (c) proDAD
+$DAT >>hb_action_ui.cpp<< 03 Okt 2024  15:58:51 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -275,6 +275,11 @@ function SetElementInnerHTML(idOrHd, text)
 {
   var element = (typeof idOrHd === "string") ? document.getElementById(idOrHd) : idOrHd;
   if(element) element.innerHTML = text;
+}
+function SetElementChecked(idOrHd, value)
+{
+  var element = (typeof idOrHd === "string") ? document.getElementById(idOrHd) : idOrHd;
+  if(element) element.checked = value;
 }
 function LogDebug(txt)
 {

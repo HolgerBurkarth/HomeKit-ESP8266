@@ -26,8 +26,8 @@ In addition, the latest events are recorded in a log and can be read at any time
 effort to the pure changes. The GarageDoorOpener example is implemented with just a few lines
 of source code. The opener is configured simply by adding units (see Host in GarageDoor.h).
  
- > :exclamation: This library has been compiled with the ESP8266 Arduino Core 3.1.2.
- Lower versions may compile with errors.
+> [!NOTE]
+> This library has been compiled with the ESP8266 Arduino Core 3.1.2. Lower versions may compile with errors.
 
 ---
 
