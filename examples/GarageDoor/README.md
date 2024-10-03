@@ -3,7 +3,7 @@
  Navigation: | [General Documentation](../../README.md) | **Garage Door Opener** |
 |-|-|-|  
 
-![GitHub Release](https://img.shields.io/github/v/release/HolgerBurkarth/main)  
+![GitHub Release](https://img.shields.io/github/v/release/HolgerBurkarth/HomeKit-ESP8266?display_name=release)  
 Author: Holger Burkarth (burkarth at prodad.com)
 
 This example shows a garage door opener that can be controlled by

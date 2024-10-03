@@ -2,7 +2,7 @@
 
 ## Apple HomeKit accessory server library for ESP8266 Arduino with useful C++ support
 
-![GitHub Release](https://img.shields.io/github/v/release/HolgerBurkarth/main)  
+![GitHub Release](https://img.shields.io/github/v/release/HolgerBurkarth/HomeKit-ESP8266?display_name=release)  
 Author: Holger Burkarth (burkarth at prodad.com)
 
 ### Features 
