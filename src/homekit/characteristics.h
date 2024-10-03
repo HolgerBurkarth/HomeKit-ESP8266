@@ -727,7 +727,7 @@ Optional Characteristics:
 
 #pragma region HOMEKIT_CHARACTERISTIC_ ...
 
-#pragma region No-Description Characteristics
+#pragma region +No-Description Characteristics
 
 #pragma region HOMEKIT_DECLARE_CHARACTERISTIC_NAME
 #define HOMEKIT_CHARACTERISTIC_NAME HOMEKIT_APPLE_UUID2("23")
@@ -875,6 +875,7 @@ Optional Characteristics:
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -882,7 +883,6 @@ Optional Characteristics:
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #pragma endregion
@@ -895,6 +895,7 @@ Optional Characteristics:
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -902,7 +903,6 @@ Optional Characteristics:
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #pragma endregion
@@ -916,10 +916,10 @@ Optional Characteristics:
     .unit = homekit_unit_percentage, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {100}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #pragma endregion
@@ -935,6 +935,28 @@ Optional Characteristics:
     ##__VA_ARGS__
 
 #pragma endregion
+
+#pragma region HOMEKIT_DECLARE_CHARACTERISTIC_TEMPERATURE_DISPLAY_UNITS
+#define HOMEKIT_CHARACTERISTIC_TEMPERATURE_DISPLAY_UNITS HOMEKIT_APPLE_UUID2("36")
+#define HOMEKIT_DECLARE_CHARACTERISTIC_TEMPERATURE_DISPLAY_UNITS(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_TEMPERATURE_DISPLAY_UNITS, \
+    .description = "Temperature Display Units", \
+    .format = homekit_format_uint8, \
+    .permissions = homekit_permissions_paired_read \
+                 | homekit_permissions_paired_write \
+                 | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
+    .min_value = (const float[]) {0}, \
+    .max_value = (const float[]) {1}, \
+    .min_step = (const float[]) {1}, \
+    .valid_values = { \
+        .count = 2, \
+        .values = (const uint8_t[]) { 0, 1 }, \
+    }, \
+    ##__VA_ARGS__
+
+#pragma endregion
+
 
 
 
@@ -1001,10 +1023,10 @@ Optional Characteristics:
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {10}, \
     .max_value = (const float[]) {35}, \
     .min_step = (const float[]) {0.1}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #pragma endregion
@@ -1097,6 +1119,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {2}, \
     .min_step = (const float[]) {1}, \
@@ -1104,7 +1127,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 3, \
         .values = (const uint8_t[]) { 0, 1, 2 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #pragma endregion
@@ -1119,10 +1141,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .unit = homekit_unit_percentage, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {100}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #pragma endregion
@@ -1137,10 +1159,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .unit = homekit_unit_celsius, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {100}, \
     .min_step = (const float[]) {0.1}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #pragma endregion
@@ -1156,10 +1178,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {25}, \
     .min_step = (const float[]) {0.1}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #pragma endregion
@@ -1174,10 +1196,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {360}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #pragma endregion
@@ -1203,6 +1225,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {3}, \
     .min_step = (const float[]) {1}, \
@@ -1210,7 +1233,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 4, \
         .values = (const uint8_t[]) { 0, 1, 2, 3 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #pragma endregion
@@ -1224,6 +1246,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {8}, \
     .min_step = (const float[]) {1}, \
@@ -1231,7 +1254,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 9, \
         .values = (const uint8_t[]) { 0, 1, 2, 3, 4, 5, 6, 7, 8 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #pragma endregion
@@ -1262,6 +1284,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -1269,7 +1292,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #pragma endregion
@@ -1361,10 +1383,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {100}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #pragma endregion
@@ -1384,6 +1406,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {3}, \
     .min_step = (const float[]) {1}, \
@@ -1391,58 +1414,47 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 4, \
         .values = (const uint8_t[]) { 0, 1, 2, 3 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #pragma endregion
 
+#pragma region HOMEKIT_DECLARE_CHARACTERISTIC_TARGET_RELATIVE_HUMIDITY
+// Target Relative Humidity
 #define HOMEKIT_CHARACTERISTIC_TARGET_RELATIVE_HUMIDITY HOMEKIT_APPLE_UUID2("34")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_TARGET_RELATIVE_HUMIDITY(_value, ...) \
+#define HOMEKIT_DECLARE_CHARACTERISTIC_TARGET_RELATIVE_HUMIDITY(_dsc, _value, ...) \
     .type = HOMEKIT_CHARACTERISTIC_TARGET_RELATIVE_HUMIDITY, \
-    .description = "Target Relative Humidity", \
+    .description = _dsc, \
     .format = homekit_format_float, \
     .unit = homekit_unit_percentage, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {100}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
+#pragma endregion
+
+#pragma region HOMEKIT_DECLARE_CHARACTERISTIC_TARGET_TEMPERATURE
+// Target Temperature
 #define HOMEKIT_CHARACTERISTIC_TARGET_TEMPERATURE HOMEKIT_APPLE_UUID2("35")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_TARGET_TEMPERATURE(_value, ...) \
+#define HOMEKIT_DECLARE_CHARACTERISTIC_TARGET_TEMPERATURE(_dsc, _value, ...) \
     .type = HOMEKIT_CHARACTERISTIC_TARGET_TEMPERATURE, \
-    .description = "Target Temperature", \
+    .description = _dsc, \
     .format = homekit_format_float, \
     .unit = homekit_unit_celsius, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
-    .min_value = (const float[]) {10}, \
-    .max_value = (const float[]) {38}, \
-    .min_step = (const float[]) {0.1}, \
     .value = HOMEKIT_FLOAT_(_value), \
+    .min_value = (const float[]) {-50}, \
+    .max_value = (const float[]) {+70}, \
+    .min_step = (const float[]) {0.1}, \
     ##__VA_ARGS__
 
-#define HOMEKIT_CHARACTERISTIC_TEMPERATURE_DISPLAY_UNITS HOMEKIT_APPLE_UUID2("36")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_TEMPERATURE_DISPLAY_UNITS(_value, ...) \
-    .type = HOMEKIT_CHARACTERISTIC_TEMPERATURE_DISPLAY_UNITS, \
-    .description = "Temperature Display Units", \
-    .format = homekit_format_uint8, \
-    .permissions = homekit_permissions_paired_read \
-                 | homekit_permissions_paired_write \
-                 | homekit_permissions_notify, \
-    .min_value = (const float[]) {0}, \
-    .max_value = (const float[]) {1}, \
-    .min_step = (const float[]) {1}, \
-    .valid_values = { \
-        .count = 2, \
-        .values = (const uint8_t[]) { 0, 1 }, \
-    }, \
-    .value = HOMEKIT_UINT8_(_value), \
-    ##__VA_ARGS__
+#pragma endregion
 
 
 
@@ -1453,9 +1465,9 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_float, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1000}, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_AIR_PARTICULATE_SIZE HOMEKIT_APPLE_UUID2("65")
@@ -1465,6 +1477,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -1472,7 +1485,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_SECURITY_SYSTEM_CURRENT_STATE HOMEKIT_APPLE_UUID2("66")
@@ -1482,6 +1494,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {4}, \
     .min_step = (const float[]) {1}, \
@@ -1489,7 +1502,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 5, \
         .values = (const uint8_t[]) { 0, 1, 2, 3, 4 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_SECURITY_SYSTEM_TARGET_STATE HOMEKIT_APPLE_UUID2("67")
@@ -1500,6 +1512,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {3}, \
     .min_step = (const float[]) {1}, \
@@ -1507,7 +1520,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 4, \
         .values = (const uint8_t[]) { 0, 1, 2, 3 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 
@@ -1518,6 +1530,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -1525,7 +1538,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_CURRENT_AMBIENT_LIGHT_LEVEL HOMEKIT_APPLE_UUID2("6B")
@@ -1536,9 +1548,9 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .unit = homekit_unit_lux, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0.0001}, \
     .max_value = (const float[]) {100000}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_CURRENT_HORIZONTAL_TILT_ANGLE HOMEKIT_APPLE_UUID2("6C")
@@ -1549,10 +1561,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .unit = homekit_unit_arcdegrees, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_INT_(_value), \
     .min_value = (const float[]) {-90}, \
     .max_value = (const float[]) {90}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_INT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_CURRENT_POSITION HOMEKIT_APPLE_UUID2("6D")
@@ -1563,10 +1575,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .unit = homekit_unit_percentage, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {100}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_CURRENT_VERTICAL_TILT_ANGLE HOMEKIT_APPLE_UUID2("6E")
@@ -1577,10 +1589,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .unit = homekit_unit_arcdegrees, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_INT_(_value), \
     .min_value = (const float[]) {-90}, \
     .max_value = (const float[]) {90}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_INT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_HOLD_POSITION HOMEKIT_APPLE_UUID2("6F")
@@ -1599,6 +1611,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -1606,7 +1619,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_OCCUPANCY_DETECTED HOMEKIT_APPLE_UUID2("71")
@@ -1616,6 +1628,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -1623,7 +1636,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_POSITION_STATE HOMEKIT_APPLE_UUID2("72")
@@ -1633,6 +1645,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {2}, \
     .min_step = (const float[]) {1}, \
@@ -1640,7 +1653,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 3, \
         .values = (const uint8_t[]) { 0, 1, 2 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_PROGRAMMABLE_SWITCH_EVENT HOMEKIT_APPLE_UUID2("73")
@@ -1650,6 +1662,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {2}, \
     .min_step = (const float[]) {1}, \
@@ -1657,7 +1670,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 3, \
         .values = (const uint8_t[]) { 0, 1, 2 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_STATUS_ACTIVE HOMEKIT_APPLE_UUID2("75")
@@ -1677,6 +1689,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -1684,7 +1697,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_STATUS_JAMMED HOMEKIT_APPLE_UUID2("78")
@@ -1694,6 +1706,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -1701,7 +1714,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 
@@ -1712,6 +1724,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -1719,7 +1732,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_TARGET_HORIZONTAL_TILT_ANGLE HOMEKIT_APPLE_UUID2("7B")
@@ -1731,10 +1743,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_INT_(_value), \
     .min_value = (const float[]) {-90}, \
     .max_value = (const float[]) {90}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_INT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_TARGET_POSITION HOMEKIT_APPLE_UUID2("7C")
@@ -1746,10 +1758,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {100}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_TARGET_VERTICAL_TILT_ANGLE HOMEKIT_APPLE_UUID2("7D")
@@ -1761,10 +1773,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {-90}, \
     .max_value = (const float[]) {90}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_SECURITY_SYSTEM_ALARM_TYPE HOMEKIT_APPLE_UUID2("8E")
@@ -1774,10 +1786,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_CHARGING_STATE HOMEKIT_APPLE_UUID2("8F")
@@ -1787,6 +1799,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {2}, \
     .min_step = (const float[]) {1}, \
@@ -1794,7 +1807,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 3, \
         .values = (const uint8_t[]) { 0, 1, 2 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_CARBON_MONOXIDE_DETECTED HOMEKIT_APPLE_UUID2("69")
@@ -1804,6 +1816,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -1811,7 +1824,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_CARBON_MONOXIDE_LEVEL HOMEKIT_APPLE_UUID2("90")
@@ -1833,9 +1845,9 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_float, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {100}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 
@@ -1846,6 +1858,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -1853,7 +1866,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_CARBON_DIOXIDE_LEVEL HOMEKIT_APPLE_UUID2("93")
@@ -1863,9 +1875,9 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_float, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {100000}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_CARBON_DIOXIDE_PEAK_LEVEL HOMEKIT_APPLE_UUID2("94")
@@ -1875,9 +1887,9 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_float, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {100000}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_AIR_QUALITY HOMEKIT_APPLE_UUID2("95")
@@ -1887,6 +1899,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {5}, \
     .min_step = (const float[]) {1}, \
@@ -1894,7 +1907,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 6, \
         .values = (const uint8_t[]) { 0, 1, 2, 3, 4, 5 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_STREAMING_STATUS HOMEKIT_APPLE_UUID3("120")
@@ -1957,10 +1969,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {100}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_MUTE HOMEKIT_APPLE_UUID3("11A")
@@ -2015,11 +2027,11 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .valid_values = { \
         .count = 4, \
         .values = (const uint8_t[]) { 0, 90, 180, 270 }, \
     }, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_IMAGE_MIRRORING HOMEKIT_APPLE_UUID3("11F")
@@ -2040,11 +2052,11 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint32, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT32_(_value), \
     .valid_values = { \
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT32_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_LOCK_PHYSICAL_CONTROLS HOMEKIT_APPLE_UUID2("A7")
@@ -2055,6 +2067,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -2062,7 +2075,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_CURRENT_AIR_PURIFIER_STATE HOMEKIT_APPLE_UUID2("A9")
@@ -2072,6 +2084,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {2}, \
     .min_step = (const float[]) {1}, \
@@ -2079,7 +2092,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 3, \
         .values = (const uint8_t[]) { 0, 1, 2 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_CURRENT_SLAT_STATE HOMEKIT_APPLE_UUID2("AA")
@@ -2089,6 +2101,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {2}, \
     .min_step = (const float[]) {1}, \
@@ -2096,7 +2109,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 3, \
         .values = (const uint8_t[]) { 0, 1, 2 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_SLAT_TYPE HOMEKIT_APPLE_UUID2("C0")
@@ -2105,10 +2117,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .description = "Slat Type", \
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_FILTER_LIFE_LEVEL HOMEKIT_APPLE_UUID2("AB")
@@ -2118,10 +2130,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_float, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {100}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_FILTER_CHANGE_INDICATION HOMEKIT_APPLE_UUID2("AC")
@@ -2131,6 +2143,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -2138,7 +2151,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_RESET_FILTER_INDICATION HOMEKIT_APPLE_UUID2("AD")
@@ -2149,9 +2161,9 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {1}, \
     .max_value = (const float[]) {1}, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_TARGET_AIR_PURIFIER_STATE HOMEKIT_APPLE_UUID2("A8")
@@ -2162,6 +2174,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -2169,7 +2182,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_TARGET_FAN_STATE HOMEKIT_APPLE_UUID2("BF")
@@ -2180,6 +2192,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -2187,7 +2200,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_CURRENT_FAN_STATE HOMEKIT_APPLE_UUID2("AF")
@@ -2197,6 +2209,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {2}, \
     .min_step = (const float[]) {1}, \
@@ -2204,7 +2217,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 3, \
         .values = (const uint8_t[]) { 0, 1, 2 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_ACTIVE HOMEKIT_APPLE_UUID2("B0")
@@ -2215,13 +2227,13 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .valid_values = { \
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_SWING_MODE HOMEKIT_APPLE_UUID2("B6")
@@ -2232,6 +2244,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -2239,7 +2252,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_CURRENT_TILT_ANGLE HOMEKIT_APPLE_UUID2("C1")
@@ -2250,10 +2262,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .unit = homekit_unit_arcdegrees, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_INT_(_value), \
     .min_value = (const float[]) {-90}, \
     .max_value = (const float[]) {90}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_INT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_TARGET_TILT_ANGLE HOMEKIT_APPLE_UUID2("C2")
@@ -2265,10 +2277,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_INT_(_value), \
     .min_value = (const float[]) {-90}, \
     .max_value = (const float[]) {90}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_INT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_OZONE_DENSITY HOMEKIT_APPLE_UUID2("C3")
@@ -2278,9 +2290,9 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_float, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1000}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_NITROGEN_DIOXIDE_DENSITY HOMEKIT_APPLE_UUID2("C4")
@@ -2290,9 +2302,9 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_float, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1000}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_SULPHUR_DIOXIDE_DENSITY HOMEKIT_APPLE_UUID2("C5")
@@ -2302,9 +2314,9 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_float, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1000}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_PM25_DENSITY HOMEKIT_APPLE_UUID2("C6")
@@ -2314,9 +2326,9 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_float, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1000}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_PM10_DENSITY HOMEKIT_APPLE_UUID2("C7")
@@ -2326,9 +2338,9 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_float, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1000}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_VOC_DENSITY HOMEKIT_APPLE_UUID2("C8")
@@ -2338,9 +2350,9 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_float, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1000}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_SERVICE_LABEL_INDEX HOMEKIT_APPLE_UUID2("CB")
@@ -2349,9 +2361,9 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .description = "Service Label Index", \
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_SERVICE_LABEL_NAMESPACE HOMEKIT_APPLE_UUID2("CD")
@@ -2360,6 +2372,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .description = "Service Label Namespace", \
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -2367,7 +2380,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_COLOR_TEMPERATURE HOMEKIT_APPLE_UUID2("CE")
@@ -2378,10 +2390,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT32_(_value), \
     .min_value = (const float[]) {50}, \
     .max_value = (const float[]) {400}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_UINT32_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_IN_USE HOMEKIT_APPLE_UUID2("D2")
@@ -2391,6 +2403,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
@@ -2398,7 +2411,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_IS_CONFIGURED HOMEKIT_APPLE_UUID2("D6")
@@ -2409,13 +2421,13 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .valid_values = { \
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_PROGRAM_MODE HOMEKIT_APPLE_UUID2("D1")
@@ -2425,6 +2437,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {2}, \
     .min_step = (const float[]) {1}, \
@@ -2432,7 +2445,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 3, \
         .values = (const uint8_t[]) { 0, 1, 2 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_REMAINING_DURATION HOMEKIT_APPLE_UUID2("D4")
@@ -2442,10 +2454,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint32, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT32_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {3600}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_UINT32_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_SET_DURATION HOMEKIT_APPLE_UUID2("D3")
@@ -2456,10 +2468,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT32_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {3600}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_UINT32_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_VALVE_TYPE HOMEKIT_APPLE_UUID2("D5")
@@ -2469,6 +2481,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {3}, \
     .min_step = (const float[]) {1}, \
@@ -2476,7 +2489,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 4, \
         .values = (const uint8_t[]) { 0, 1, 2, 3 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_CURRENT_HEATER_COOLER_STATE HOMEKIT_APPLE_UUID2("B1")
@@ -2486,6 +2498,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {3}, \
     .min_step = (const float[]) {1}, \
@@ -2493,7 +2506,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 4, \
         .values = (const uint8_t[]) { 0, 1, 2, 3 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_TARGET_HEATER_COOLER_STATE HOMEKIT_APPLE_UUID2("B2")
@@ -2504,6 +2516,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {2}, \
     .min_step = (const float[]) {1}, \
@@ -2511,7 +2524,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 3, \
         .values = (const uint8_t[]) { 0, 1, 2 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_CURRENT_HUMIDIFIER_DEHUMIDIFIER_STATE HOMEKIT_APPLE_UUID2("B3")
@@ -2521,6 +2533,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {3}, \
     .min_step = (const float[]) {1}, \
@@ -2528,7 +2541,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 4, \
         .values = (const uint8_t[]) { 0, 1, 2, 3 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_TARGET_HUMIDIFIER_DEHUMIDIFIER_STATE HOMEKIT_APPLE_UUID2("B4")
@@ -2539,6 +2551,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {2}, \
     .min_step = (const float[]) {1}, \
@@ -2546,7 +2559,6 @@ enum HOMEKIT_TARGET_DOOR_STATE
         .count = 3, \
         .values = (const uint8_t[]) { 0, 1, 2 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_WATER_LEVEL HOMEKIT_APPLE_UUID2("B5")
@@ -2557,10 +2569,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .unit = homekit_unit_percentage, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {100}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_RELATIVE_HUMIDITY_DEHUMIDIFIER_THRESHOLD HOMEKIT_APPLE_UUID2("C9")
@@ -2572,10 +2584,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {100}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_RELATIVE_HUMIDITY_HUMIDIFIER_THRESHOLD HOMEKIT_APPLE_UUID2("CA")
@@ -2587,10 +2599,10 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {100}, \
     .min_step = (const float[]) {1}, \
-    .value = HOMEKIT_FLOAT_(_value), \
     ##__VA_ARGS__
 
 
@@ -2604,13 +2616,13 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .valid_values = { \
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CLOSED_CAPTIONS_DISABLED 0
@@ -2624,13 +2636,13 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .valid_values = { \
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_DISPLAY_ORDER HOMEKIT_APPLE_UUID3("136")
@@ -2651,13 +2663,13 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {3}, \
     .valid_values = { \
         .count = 4, \
         .values = (const uint8_t[]) { 0, 1, 2, 3 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_TARGET_MEDIA_STATE_PLAY 0
@@ -2672,13 +2684,13 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {2}, \
     .valid_values = { \
         .count = 3, \
         .values = (const uint8_t[]) { 0, 1, 2 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_PICTURE_MODE_OTHER 0
@@ -2698,13 +2710,13 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT16_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {13}, \
     .valid_values = { \
         .count = 14, \
         .values = (const uint8_t[]) { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 }, \
     }, \
-    .value = HOMEKIT_UINT16_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_POWER_MODE_SELECTION_SHOW 0
@@ -2771,13 +2783,13 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {10}, \
     .valid_values = { \
         .count = 11, \
         .values = (const uint8_t[]) { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_INPUT_DEVICE_TYPE_OTHER 0
@@ -2794,13 +2806,13 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {5}, \
     .valid_values = { \
         .count = 6, \
         .values = (const uint8_t[]) { 0, 1, 2, 3, 4, 5 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 
@@ -2814,13 +2826,13 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {3}, \
     .valid_values = { \
         .count = 4, \
         .values = (const uint8_t[]) { 0, 1, 2, 3 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_TARGET_VISIBILITY_STATE_SHOWN 0
@@ -2834,13 +2846,13 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1}, \
     .valid_values = { \
         .count = 2, \
         .values = (const uint8_t[]) { 0, 1 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_VOLUME_CONTROL_TYPE_NONE 0
@@ -2855,13 +2867,13 @@ enum HOMEKIT_TARGET_DOOR_STATE
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {3}, \
     .valid_values = { \
         .count = 4, \
         .values = (const uint8_t[]) { 0, 1, 2, 3 }, \
     }, \
-    .value = HOMEKIT_UINT8_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_VOLUME_SELECTOR_INCREMENT 0
