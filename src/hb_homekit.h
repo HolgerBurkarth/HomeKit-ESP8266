@@ -3,7 +3,7 @@
 $CRT 09 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.h<< 02 Okt 2024  08:24:59 - (c) proDAD
+$DAT >>hb_homekit.h<< 04 Okt 2024  07:35:39 - (c) proDAD
 
 using namespace HBHomeKit;
 *******************************************************************/
@@ -16,6 +16,7 @@ using namespace HBHomeKit;
 
 #include <Arduino.h>
 #include <functional>
+#include <limits>
 #include <array>
 #include <memory>
 #include <list>
@@ -206,15 +207,22 @@ struct CKalman1DFilter
   T R{ 5e-5 }; // Measurement variance
   T Q{ 1e-5 }; // Process variance
   T Error{ 1 };
-  T Value{};
-
+  T Value{ std::numeric_limits<T>::min() };
+  
   T Update(T measurement)
   {
-    Error += Q;
-    T Gain = Error / (Error + R);
-    Gain = std::min<T>(1, std::max<T>(0, Gain));
-    Value += Gain * (measurement - Value);
-    Error = (1 - Gain) * Error;
+    if(Value == std::numeric_limits<T>::min())
+    {
+      Value = measurement;
+    }
+    else
+    {
+      Error += Q;
+      T Gain = Error / (Error + R);
+      Gain = std::min<T>(1, std::max<T>(0, Gain));
+      Value += Gain * (measurement - Value);
+      Error = (1 - Gain) * Error;
+    }
     return Value;
 
   }
@@ -1701,7 +1709,8 @@ class CLogging : public ILogging
   #pragma region Fields
   using Cline = std::array<char, CharsPerLine + 1>;
   std::vector<Cline> mBuffer;
-  size_t mPosition{};
+  uint16_t mEndIndex{};
+  bool mFull{};
   bool mNeedClearLine{};
 
 public:
@@ -1769,8 +1778,12 @@ public:
   #pragma region NewLine
   virtual void NewLine() override
   {
-    if(++mPosition >= MaxLines)
-      mPosition = 0;
+    ++mEndIndex;
+    if(mEndIndex >= MaxLines)
+    {
+      mEndIndex = 0;
+      mFull = true;
+    }
 
     mNeedClearLine = true;
   }
@@ -1802,7 +1815,8 @@ public:
   #pragma region Clear
   virtual void Clear() override
   {
-    mPosition = 0;
+    mFull = false;
+    mEndIndex = 0;
     for(auto& Line : mBuffer)
       Line.fill(0);
   }
@@ -1812,26 +1826,17 @@ public:
   #pragma region GetEnumerator
   virtual ILoggingEnumerator_Ptr GetEnumerator() const override
   {
-    size_t Count{};
-    size_t Cur;
+    size_t Count, Cur;
 
-    // set Cur to the last line
-    if(mPosition == 0)
-      Cur = MaxLines - 1;
-    else
-      Cur = mPosition - 1;
-
-
-    /* Search for the first (empty) line in reverse or take all of them. */
-    while(Count < MaxLines && mBuffer[Cur].data()[0] != 0)
+    if(mFull)
     {
-      ++Count;
-
-      // decrement Cur
-      if(Cur == 0)
-        Cur = MaxLines - 1;
-      else
-        --Cur;
+      Cur = mEndIndex;
+      Count = MaxLines;
+    }
+    else
+    {
+      Cur = 0;
+      Count = mEndIndex;
     }
 
     return std::make_unique<CEnumerator>(*this, Cur, Count);
@@ -1842,11 +1847,12 @@ public:
   #pragma region  GetLine
   virtual String GetLine(uint32_t id) const
   {
-    id %= MaxLines;
-    if(id >= MaxLines || id == mPosition)
+    if(id >= MaxLines)
       return String();
+    if(mFull)
+      id += mEndIndex;
 
-    return String(mBuffer[id].data());
+    return String(mBuffer[id % MaxLines].data());
   }
   #pragma endregion
 
@@ -1863,13 +1869,13 @@ private:
     if(mNeedClearLine)
     {
       mNeedClearLine = false;
-      mBuffer[mPosition][0] = 0;
+      mBuffer[mEndIndex][0] = 0;
     }
   }
 
   void StrCatCurPos(const char* src)
   {
-    auto& Line = mBuffer[mPosition];
+    auto& Line = mBuffer[mEndIndex];
     ClearLineIfNeeded();
     strncat(Line.data(), src, Line.size() - 1);
   }
@@ -2315,6 +2321,10 @@ private:
   */
   bool mOnlyLMUMenusVisible{};
 
+  /* Disable all web requests.
+  */
+  bool mDisableWebRequests{};
+
   using const_menu_iterator = MENU_List::const_iterator;
   using const_cmd_iterator = CMD_Map::const_iterator;
 
@@ -2496,6 +2506,13 @@ public:
 
   #pragma endregion
 
+  #pragma region DisableWebRequests / EnableWebRequests
+
+  void DisableWebRequests() { mDisableWebRequests = true; }
+  void EnableWebRequests() { mDisableWebRequests = false; }
+
+  #pragma endregion
+
   #pragma region IndexOfMenuURI
   /* Get the index of a menu item by URI.
   * @param uri The URI of the menu item. @see CHtmlWebSiteMenuItem::URI
@@ -2667,8 +2684,11 @@ public:
   /* Install standard variables
   * @see ExpandVariables
   * @note: The following standard variables are installed:
-  * - IP
+  * - LOCAL_IP
   *   The IP address of the device
+
+  * - REMOTE_IP
+  *   The IP address of the remote client
   *
   * - MAC
   *   The MAC address of the device
@@ -3260,6 +3280,47 @@ public:
     IHtmlWebSiteBuilder_Ptr builder = CreateHtmlWebSiteBuilder()
   )
     : mConfig(config)
+    , WifiConnection(std::move(wifiPass))
+    , Controller(WifiConnection, std::move(builder))
+    , mLEDTimer{ 100, &UpdateBuildInLED }
+  {
+    Singleton = this;
+  }
+
+  #pragma endregion
+
+  #pragma region CHomeKit(&Accessory, ...)
+  /*
+  * @example
+    CAHTSensorService Sensor{ ... };
+
+    const CDeviceService Device
+    {
+      .DeviceName{"Sensor"},
+    };
+
+    const CAccessory<3> gbAccessory
+    {
+      {
+        .category = homekit_accessory_category_sensor,
+      },
+
+      &Device,
+      Sensor[0],
+      Sensor[1]
+    };
+
+    CHomeKit HomeKit(&gbAccessory);
+
+  */
+  CHomeKit
+  (
+    const homekit_accessory_t* pAccessory,
+    CWiFiConnection::CParams wifiPass = {},
+    IHtmlWebSiteBuilder_Ptr builder = CreateHtmlWebSiteBuilder()
+  )
+    : mInnerConfig{ {.password = "111-11-111"}, pAccessory }
+    , mConfig(&mInnerConfig)
     , WifiConnection(std::move(wifiPass))
     , Controller(WifiConnection, std::move(builder))
     , mLEDTimer{ 100, &UpdateBuildInLED }
