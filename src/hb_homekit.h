@@ -713,10 +713,17 @@ bool modify_value(homekit_value_t& value, const homekit_value_t& newValue);
 *  - modify_value(Ch, homekit_value_t{});
 *  - modify_value(Ch, true);
 *  - modify_value(Ch, HOMEKIT_CURRENT_DOOR_STATE{});
+* @note ch is const to support: (This writes a changed value to the log)
+*    .TemperatureGetter = [](const homekit_characteristic_t* pC) -> homekit_value_t
+*    {
+*      modify_value(pC, SensorData.Temperature());
+*      return pC->value;
+*    },
+*
 */
 template<typename T>
-bool modify_value(homekit_characteristic_t* ch, T newValue) noexcept;
-bool modify_value(homekit_characteristic_t* ch, const homekit_value_t& newValue);
+bool modify_value(const homekit_characteristic_t* ch, T newValue) noexcept;
+bool modify_value(const homekit_characteristic_t* ch, const homekit_value_t& newValue);
 
 /* Change the value of a homekit_characteristic_t
 * If the value changes, HomeKit clients are notified.
@@ -748,7 +755,7 @@ constexpr bool modify_value(homekit_value_t& value, T newValue) noexcept
 }
 
 template<typename T>
-bool modify_value(homekit_characteristic_t* ch, T newValue) noexcept
+bool modify_value(const homekit_characteristic_t* ch, T newValue) noexcept
 {
   return modify_value
   (
@@ -1224,7 +1231,12 @@ inline CTextEmitter MakeTextEmitter()
 template<typename T, typename = decltype(to_string(std::declval<T>()))>
 CTextEmitter MakeTextEmitter(const T& value)
 {
-  return [Text = to_string(value)](Stream& p) { p << Text; };
+  return [Text = to_string(value)](Stream& p)
+  {
+    //WARNING: Stream<<"" causes problems! : 2024-10-02 Core 3.1.2
+    if(!Text.isEmpty())
+      p << Text;
+  };
 }
 
 #pragma endregion

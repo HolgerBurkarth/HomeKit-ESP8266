@@ -3,7 +3,7 @@
 $CRT 18 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_device_menu.cpp<< 30 Sep 2024  14:43:24 - (c) proDAD
+$DAT >>hb_device_menu.cpp<< 04 Okt 2024  07:40:04 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -127,7 +127,8 @@ onload = function()
 <tr><th>Paired with HK</th><td>{IS_PAIRED}</td></tr>
 <tr><th>Connected with</th><td><div id='clients'>#% clients</div></td></tr>
 
-<tr><th>IP</th><td>{IP}</td></tr>
+<tr><th>Remote IP</th><td>{REMOTE_IP}</td></tr>
+<tr><th>Device IP</th><td>{LOCAL_IP}</td></tr>
 <tr><th>MAC</th><td>{MAC}</td></tr>
 <tr><th>Model</th><td>{MODEL}</td></tr>
 <tr><th>Manufacturer</th><td>{MANUFACTURER}</td></tr>

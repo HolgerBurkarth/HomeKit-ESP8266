@@ -3,10 +3,16 @@
 $CRT 16 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>arduino_homekit_server.cpp<< 16 Sep 2024  14:40:42 - (c) proDAD
+$DAT >>arduino_homekit_server.cpp<< 04 Okt 2024  07:54:39 - (c) proDAD
 *******************************************************************/
 #pragma endregion
+#pragma region Spelling
+// Ignore Spelling: maxpkt fds pw ev aa chacha preinit valueint admins gw ack arcdegrees 
+#pragma endregion
 #pragma region Includes
+
+//#define HOMEKIT_DEBUG 1
+
 #include <Arduino.h>
 #include <esp_xpgm.h>
 #include <ESP8266WiFi.h>
@@ -37,6 +43,7 @@ $DAT >>arduino_homekit_server.cpp<< 16 Sep 2024  14:40:42 - (c) proDAD
 #include "crypto.h"
 #include "watchdog.h"
 #include "arduino_homekit_server.h"
+#include "hb_homekit.h"
 
 #pragma endregion
 #pragma region HAP Info (Apple)
@@ -59,7 +66,8 @@ $DAT >>arduino_homekit_server.cpp<< 16 Sep 2024  14:40:42 - (c) proDAD
 #define HOMEKIT_MDNS_SERVICE     "hap"//"_hap"
 #define HOMEKIT_MDNS_PROTO       "tcp"//"_tcp"
 #define HOMEKIT_EVENT_QUEUE_SIZE 4 //original is 20
-#define HOMEKIT_SOCKET_TIMEOUT   500 //milliseconds
+//#define HOMEKIT_SOCKET_TIMEOUT   500 //milliseconds
+#define HOMEKIT_SOCKET_TIMEOUT   5000 //milliseconds
 
 //#define TCP_DEFAULT_KEEPALIVE_IDLE_SEC          7200 // 2 hours
 //#define TCP_DEFAULT_KEEPALIVE_INTERVAL_SEC      75   // 75 sec
@@ -89,21 +97,572 @@ $DAT >>arduino_homekit_server.cpp<< 16 Sep 2024  14:40:42 - (c) proDAD
 //#define CLIENT_INFO(client, message, ...)   INFO("[Client %d] " message, client->socket, ##__VA_ARGS__)
 #define CLIENT_INFO(client, message, ...)   INFO(message, ##__VA_ARGS__)
 
-client_context_t* current_client_context = NULL;
-homekit_server_t* running_server = nullptr;
-WiFiEventHandler arduino_homekit_gotiphandler;
-
 #define HOMEKIT_NOTIFY_EVENT(server, event) \
-  if ((server)->config->on_event) \
-      (server)->config->on_event(event);
+  if((server)->config->on_event) (server)->config->on_event(event);
 
 
 #pragma endregion
 
+#pragma region +Protocols
+
+#pragma region Starting unpaired device
+/* Starting unpaired device:
+
+Info		WiFi connected, IP: 192.168.3.76
+Warn	2024-10-04 06:03:13	ESP Restart Reason: Software/System restart
+>>> server_new: WiFiServer begin at port: 5556
+    Starting server
+Info	2024-10-04 06:03:13	Resetting HomeKit storage
+Info	2024-10-04 06:03:13	Formatting HomeKit storage at 0x3fb000
+Info	2024-10-04 06:03:13	Generated new accessory ID: E8:39:B2:7D:9D:A6
+Info	2024-10-04 06:03:13	Generated new accessory key
+Info	2024-10-04 06:03:13	Preinitializing pairing context
+>>> arduino_homekit_preinit: Free heap: 28616
+Info	2024-10-04 06:03:13	Using user-specified password: 111-11-111
+Info	2024-10-04 06:03:13	Call s_mp_exptmod in integer.c, original winsize 6
+Info	2024-10-04 06:03:26	Call s_mp_exptmod in integer.c, original winsize 5
+Info	2024-10-04 06:03:33	Preinitialize pairing context success
+    Configuring MDNS
+Info	2024-10-04 06:03:33	MDNS begin: http://Sensor.local, IP: 192.168.3.76
+    Init server done
+    Web-Server started
+    Free heap: 23520 bytes
+Info	2024-10-04 06:03:33	Setup finished
+>>> operator(): MDNS call DynamicServiceTxtCallback
+>>> operator(): MDNS call DynamicServiceTxtCallback
+>>> operator(): MDNS call DynamicServiceTxtCallback
+...
+*/
+
+#pragma endregion
+
+#pragma region Pairing failed
+/* Pairing failed ...
+
+Info		WiFi connected, IP: 192.168.3.76
+Warn	2024-10-04 06:45:53	ESP Restart Reason: Software/System restart
+    Starting server
+Info	2024-10-04 06:45:53	Resetting HomeKit storage
+Info	2024-10-04 06:45:53	Formatting HomeKit storage at 0x3fb000
+Info	2024-10-04 06:45:53	Generated new accessory ID: 95:05:4E:5E:05:38
+Info	2024-10-04 06:45:53	Generated new accessory key
+Info	2024-10-04 06:45:53	Preinitializing pairing context
+Info	2024-10-04 06:45:53	Using user-specified password: 111-11-111
+Info	2024-10-04 06:45:53	Call s_mp_exptmod in integer.c, original winsize 6
+Info	2024-10-04 06:46:06	Call s_mp_exptmod in integer.c, original winsize 5
+Info	2024-10-04 06:46:13	Preinitialize pairing context success
+    Configuring MDNS
+Info	2024-10-04 06:46:13	MDNS begin: http://Sensor.local, IP: 192.168.3.76
+    Init server done
+    Web-Server started
+    Free heap: 24160 bytes
+Info	2024-10-04 06:46:13	Setup finished
+Info	2024-10-04 06:46:29	Got new client: local 192.168.3.76:5556, remote 192.168.3.28:63808
+    Enter LockWebServer
+
+Info	2024-10-04 06:46:29	Pair Setup Step 1/3
+Info	2024-10-04 06:46:32	Pair Setup Step 2/3
+Info	2024-10-04 06:46:32	Call s_mp_exptmod in integer.c, original winsize 6
+Info	2024-10-04 06:46:52	Call s_mp_exptmod in integer.c, original winsize 5
+Error	2024-10-04 06:47:01	[Client 1073703196] The socket is null! (or is closed)
+Info	2024-10-04 06:47:01	Disconnected!
+Info	2024-10-04 06:47:01	Closing client connection
+    Leave LockWebServer
+
+    Free saved_preinit_pairing_context
+Info	2024-10-04 06:47:01	Clear the pairing context
+Info	2024-10-04 06:47:01	Preinitializing pairing context
+Info	2024-10-04 06:47:01	Using user-specified password: 111-11-111
+Info	2024-10-04 06:47:01	Call s_mp_exptmod in integer.c, original winsize 6
+Info	2024-10-04 06:47:14	Call s_mp_exptmod in integer.c, original winsize 5
+Info	2024-10-04 06:47:21	Preinitialize pairing context success
+*/
+
+#pragma endregion
+
+#pragma region (Debug) Pairing
+/* (Debug) Pairing ...
+
+Info	2024-10-04 06:06:19	Got new client: local 192.168.3.76:5556, remote 192.168.3.28:63797
+>>> homekit_client_process: [Client 1073702916] Got 124 incoming data, encrypted is false
+>>> homekit_server_on_body: http_parser length=6
+>>> homekit_server_on_message_complete: http_parser message_complete
+>>> homekit_server_on_pair_setup: Pair Setup
+>>> homekit_server_on_pair_setup: Free heap: 20984
+Info	2024-10-04 06:06:19	Pair Setup Step 1/3
+>>> homekit_server_on_pair_setup: Free heap: 20912
+>>> send_tlv_response: [Client 1073702916] Sending TLV response
+>>> client_send: [Client 1073702916] send data size=513, encrypted=false
+>>> write: [Client 1073702916] Sending data of size 513
+### [ 191917] pair_setup took     28ms
+>>> homekit_client_process: [Client 1073702916] Finished processing
+>>> homekit_client_process: [Client 1073702916] Got 577 incoming data, encrypted is false
+>>> homekit_server_on_body: http_parser length=457
+>>> homekit_server_on_message_complete: http_parser message_complete
+>>> homekit_server_on_pair_setup: Pair Setup
+>>> homekit_server_on_pair_setup: Free heap: 20312
+Info	2024-10-04 06:06:24	Pair Setup Step 2/3
+>>> homekit_server_on_pair_setup: Free heap: 19872
+>>> homekit_server_on_pair_setup: [Client 1073702916] Computing SRP shared secret
+>>> homekit_server_on_pair_setup: Free heap: 19872
+Info	2024-10-04 06:06:24	Call s_mp_exptmod in integer.c, original winsize 6
+Info	2024-10-04 06:06:43	Call s_mp_exptmod in integer.c, original winsize 5
+>>> homekit_server_on_pair_setup: [Client 1073702916] Verifying peer's proof
+>>> homekit_server_on_pair_setup: [Client 1073702916] Generating own proof
+>>> send_tlv_response: [Client 1073702916] Sending TLV response
+>>> client_send: [Client 1073702916] send data size=172, encrypted=false
+>>> write: [Client 1073702916] Sending data of size 172
+### [ 224695] pair_setup took  28581ms
+Info	2024-10-04 06:06:43	Call s_mp_exptmod in integer.c, original winsize 5
+>>> homekit_server_on_pair_setup: [Client 1073702916] Verifying peer's proof
+>>> homekit_server_on_pair_setup: [Client 1073702916] Generating own proof
+>>> send_tlv_response: [Client 1073702916] Sending TLV response
+>>> client_send: [Client 1073702916] send data size=172, encrypted=false
+>>> write: [Client 1073702916] Sending data of size 172
+### [ 224695] pair_setup took  28581ms
+>>> homekit_client_process: [Client 1073702916] Finished processing
+>>> homekit_client_process: [Client 1073702916] Got 279 incoming data, encrypted is false
+>>> homekit_server_on_body: http_parser length=159
+>>> homekit_server_on_message_complete: http_parser message_complete
+>>> homekit_server_on_pair_setup: Pair Setup
+>>> homekit_server_on_pair_setup: Free heap: 21152
+Info	2024-10-04 06:06:52	Pair Setup Step 3/3
+>>> homekit_server_on_pair_setup: Free heap: 20928
+>>> homekit_server_on_pair_setup: [Client 1073702916] Calculating shared secret
+>>> homekit_server_on_pair_setup: [Client 1073702916] Decrypting payload
+>>> homekit_server_on_pair_setup: [Client 1073702916] Importing device public key
+>>> homekit_server_on_pair_setup: [Client 1073702916] Calculating DeviceX
+>>> homekit_server_on_pair_setup: [Client 1073702916] Verifying device signature
+Info	2024-10-04 06:06:53	Call ge_double_scalarmult_vartime_lowmem in ge_low_mem.c
+    Added pairing with 5E409937-DEAA-4A6C-B1B2-F2B85E602F50
+>>> homekit_server_on_pair_setup: [Client 1073702916] Exporting accessory public key
+>>> homekit_server_on_pair_setup: [Client 1073702916] Calculating AccessoryX
+>>> homekit_server_on_pair_setup: [Client 1073702916] Generating accessory signature
+>>> homekit_server_on_pair_setup: Free heap: 18200
+>>> homekit_server_on_pair_setup: [Client 1073702916] Encrypting response
+>>> send_tlv_response: [Client 1073702916] Sending TLV response
+>>> client_send: [Client 1073702916] send data size=244, encrypted=false
+>>> write: [Client 1073702916] Sending data of size 244
+    Free saved_preinit_pairing_context
+Info	2024-10-04 06:06:54	Successfully paired
+### [ 226516] pair_setup took   1670ms
+>>> homekit_client_process: [Client 1073702916] Finished processing
+
+Info	2024-10-04 06:06:54	Disconnected!
+Info	2024-10-04 06:06:54	Closing client connection
+>>> homekit_server_close_client: [Client 1073702916] The socket is stopped
+
+
+
+Info	2024-10-04 06:06:54	Got new client: local 192.168.3.76:5556, remote 192.168.3.28:63798
+>>> homekit_client_process: [Client 1073706356] Got 157 incoming data, encrypted is false
+>>> homekit_server_on_body: http_parser length=37
+>>> homekit_server_on_message_complete: http_parser message_complete
+>>> homekit_server_on_pair_verify: HomeKit Pair Verify
+>>> homekit_server_on_pair_verify: Free heap: 22704
+Info	2024-10-04 06:06:54	Pair Verify Step 1/2
+>>> homekit_server_on_pair_verify: [Client 1073706356] Importing device Curve25519 public key
+>>> homekit_server_on_pair_verify: [Client 1073706356] Generating accessory Curve25519 key
+>>> homekit_server_on_pair_verify: [Client 1073706356] Exporting accessory Curve25519 public key
+>>> homekit_server_on_pair_verify: [Client 1073706356] Generating Curve25519 shared secret
+>>> homekit_server_on_pair_verify: [Client 1073706356] Generating signature
+>>> homekit_server_on_pair_verify: [Client 1073706356] Generating proof
+>>> homekit_server_on_pair_verify: [Client 1073706356] Encrypting response
+>>> send_tlv_response: [Client 1073706356] Sending TLV response
+>>> client_send: [Client 1073706356] send data size=244, encrypted=false
+>>> write: [Client 1073706356] Sending data of size 244
+### [ 227475] pair_verify took    562ms
+    Free heap: 21832
+>>> homekit_client_process: [Client 1073706356] Finished processing
+>>> homekit_client_process: [Client 1073706356] Got 246 incoming data, encrypted is false
+>>> homekit_server_on_body: http_parser length=125
+>>> homekit_server_on_message_complete: http_parser message_complete
+>>> homekit_server_on_pair_verify: HomeKit Pair Verify
+>>> homekit_server_on_pair_verify: Free heap: 22416
+Info	2024-10-04 06:06:55	Pair Verify Step 2/2
+>>> homekit_server_on_pair_verify: [Client 1073706356] Decrypting payload
+>>> homekit_server_on_pair_verify: [Client 1073706356] Searching pairing with 5E409937-DEAA-4A6C-B1B2-F2B85E602F50
+Info	2024-10-04 06:06:55	Found pairing with 5E409937-DEAA-4A6C-B1B2-F2B85E602F50
+>>> homekit_server_on_pair_verify: [Client 1073706356] Verifying device signature
+Info	2024-10-04 06:06:55	Call ge_double_scalarmult_vartime_lowmem in ge_low_mem.c
+>>> send_tlv_response: [Client 1073706356] Sending TLV response
+>>> client_send: [Client 1073706356] send data size=105, encrypted=false
+>>> write: [Client 1073706356] Sending data of size 105
+Info	2024-10-04 06:06:57	Verification successful, secure session established
+### [ 229140] pair_verify took   1522ms
+    Free heap: 21608
+>>> homekit_client_process: [Client 1073706356] Finished processing
+>>> homekit_client_process: [Client 1073706356] Got 77 incoming data, encrypted is true
+>>> homekit_client_process: [Client 1073706356] Decrypting data
+>>> homekit_client_process: [Client 1073706356] Decrypted 59 bytes, available 0
+>>> homekit_server_on_message_complete: http_parser message_complete
+Info	2024-10-04 06:06:57	Get Accessories
+>>> homekit_server_on_get_accessories: Free heap: 22496
+>>> client_send: [Client 1073706356] send data size=107, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 107
+>>> write: [Client 1073706356] Sending data of size 125
+>>> homekit_server_on_get_accessories: [Client 1073706356] Get Accessories, start send json body
+>>> client_send_chunk: [Client 1073706356] client_send_chunk, size=508, offset=5
+>>> client_send: [Client 1073706356] send data size=515, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 515
+>>> write: [Client 1073706356] Sending data of size 533
+>>> client_send_chunk: [Client 1073706356] client_send_chunk, size=508, offset=5
+>>> client_send: [Client 1073706356] send data size=515, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 515
+>>> write: [Client 1073706356] Sending data of size 533
+>>> client_send_chunk: [Client 1073706356] client_send_chunk, size=107, offset=4
+>>> client_send: [Client 1073706356] send data size=113, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 113
+>>> write: [Client 1073706356] Sending data of size 131
+>>> client_send_chunk: [Client 1073706356] client_send_chunk, size=0, offset=3
+>>> client_send: [Client 1073706356] send data size=5, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 5
+>>> write: [Client 1073706356] Sending data of size 23
+### [ 229524] get_accessories took    190ms
+>>> homekit_client_process: [Client 1073706356] Finished processing
+>>> homekit_client_process: [Client 1073706356] Got 187 incoming data, encrypted is true
+>>> homekit_client_process: [Client 1073706356] Decrypting data
+>>> homekit_client_process: [Client 1073706356] Decrypted 169 bytes, available 0
+>>> homekit_server_on_body: http_parser length=50
+>>> homekit_server_on_message_complete: http_parser message_complete
+Info	2024-10-04 06:06:58	Update Characteristics
+>>> homekit_server_on_update_characteristics: Free heap: 22040
+>>> homekit_server_on_update_characteristics: [Client 1073706356] Processing element {
+  "aid":	1,
+  "iid":	10,
+  "ev":	true
+}
+>>> homekit_server_on_update_characteristics: [Client 1073706356] There were no processing errors, sending No Content response
+>>> client_send: [Client 1073706356] send data size=27, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 27
+>>> write: [Client 1073706356] Sending data of size 45
+### [ 230799] update_characteristics took     56ms
+>>> homekit_client_process: [Client 1073706356] Finished processing
+>>> homekit_client_process: [Client 1073706356] Got 92 incoming data, encrypted is true
+>>> homekit_client_process: [Client 1073706356] Decrypting data
+>>> homekit_client_process: [Client 1073706356] Decrypted 74 bytes, available 0
+>>> homekit_server_on_message_complete: http_parser message_complete
+Info	2024-10-04 06:06:58	Get Characteristics
+>>> homekit_server_on_get_characteristics: Free heap: 22136
+>>> homekit_server_on_get_characteristics: [Client 1073706356] Query parameter id = 1.7,1.5
+>>> homekit_server_on_get_characteristics: [Client 1073706356] Requested characteristic info for 1.7
+>>> homekit_server_on_get_characteristics: [Client 1073706356] Requested characteristic info for 1.5
+>>> client_send: [Client 1073706356] send data size=107, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 107
+>>> write: [Client 1073706356] Sending data of size 125
+>>> homekit_server_on_get_characteristics: [Client 1073706356] Requested characteristic info for 1.7
+>>> homekit_server_on_get_characteristics: [Client 1073706356] Requested characteristic info for 1.5
+>>> client_send_chunk: [Client 1073706356] client_send_chunk, size=88, offset=4
+>>> client_send: [Client 1073706356] send data size=94, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 94
+>>> write: [Client 1073706356] Sending data of size 112
+>>> client_send_chunk: [Client 1073706356] client_send_chunk, size=0, offset=3
+>>> client_send: [Client 1073706356] send data size=5, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 5
+>>> write: [Client 1073706356] Sending data of size 23
+>>> write: [Client 1073706356] Sending data of size 112
+>>> client_send_chunk: [Client 1073706356] client_send_chunk, size=0, offset=3
+>>> client_send: [Client 1073706356] send data size=5, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 5
+>>> write: [Client 1073706356] Sending data of size 23
+>>> homekit_client_process: [Client 1073706356] Finished processing
+>>> homekit_client_process: [Client 1073706356] Got 187 incoming data, encrypted is true
+>>> homekit_client_process: [Client 1073706356] Decrypting data
+>>> homekit_client_process: [Client 1073706356] Decrypted 169 bytes, available 0
+>>> homekit_server_on_body: http_parser length=50
+>>> homekit_server_on_message_complete: http_parser message_complete
+Info	2024-10-04 06:06:59	Update Characteristics
+>>> homekit_server_on_update_characteristics: Free heap: 21912
+>>> homekit_server_on_update_characteristics: [Client 1073706356] Processing element {
+  "aid":	1,
+  "iid":	10,
+  "ev":	true
+}
+>>> homekit_server_on_update_characteristics: [Client 1073706356] There were no processing errors, sending No Content response
+>>> client_send: [Client 1073706356] send data size=27, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 27
+>>> write: [Client 1073706356] Sending data of size 45
+### [ 231075] update_characteristics took     56ms
+>>> homekit_client_process: [Client 1073706356] Finished processing
+>>> homekit_client_process: [Client 1073706356] Got 88 incoming data, encrypted is true
+>>> homekit_client_process: [Client 1073706356] Decrypting data
+>>> homekit_client_process: [Client 1073706356] Decrypted 70 bytes, available 0
+>>> homekit_server_on_message_complete: http_parser message_complete
+Info	2024-10-04 06:06:59	Get Characteristics
+>>> homekit_server_on_get_characteristics: Free heap: 22232
+>>> homekit_server_on_get_characteristics: [Client 1073706356] Query parameter id = 1.9
+>>> homekit_server_on_get_characteristics: [Client 1073706356] Requested characteristic info for 1.9
+>>> client_send: [Client 1073706356] send data size=107, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 107
+>>> write: [Client 1073706356] Sending data of size 125
+>>> homekit_server_on_get_characteristics: [Client 1073706356] Requested characteristic info for 1.9
+>>> client_send_chunk: [Client 1073706356] client_send_chunk, size=53, offset=4
+>>> client_send: [Client 1073706356] send data size=59, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 59
+>>> write: [Client 1073706356] Sending data of size 77
+>>> client_send_chunk: [Client 1073706356] client_send_chunk, size=0, offset=3
+>>> client_send: [Client 1073706356] send data size=5, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 5
+>>> write: [Client 1073706356] Sending data of size 23
+>>> homekit_client_process: [Client 1073706356] Finished processing
+>>> homekit_client_process: [Client 1073706356] Got 92 incoming data, encrypted is true
+>>> homekit_client_process: [Client 1073706356] Decrypting data
+>>> homekit_client_process: [Client 1073706356] Decrypted 74 bytes, available 0
+>>> homekit_server_on_message_complete: http_parser message_complete
+Info	2024-10-04 06:06:59	Get Characteristics
+>>> homekit_server_on_get_characteristics: Free heap: 22112
+>>> homekit_server_on_get_characteristics: [Client 1073706356] Query parameter id = 1.9,1.5
+>>> homekit_server_on_get_characteristics: [Client 1073706356] Requested characteristic info for 1.9
+>>> homekit_server_on_get_characteristics: [Client 1073706356] Requested characteristic info for 1.5
+>>> client_send: [Client 1073706356] send data size=107, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 107
+>>> write: [Client 1073706356] Sending data of size 125
+>>> homekit_server_on_get_characteristics: [Client 1073706356] Requested characteristic info for 1.9
+>>> homekit_server_on_get_characteristics: [Client 1073706356] Requested characteristic info for 1.5
+>>> client_send_chunk: [Client 1073706356] client_send_chunk, size=88, offset=4
+>>> client_send: [Client 1073706356] send data size=94, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 94
+>>> write: [Client 1073706356] Sending data of size 112
+>>> client_send_chunk: [Client 1073706356] client_send_chunk, size=0, offset=3
+>>> client_send: [Client 1073706356] send data size=5, encrypted=true
+>>> client_send_encrypted_: [Client 1073706356] Send encrypted of size 5
+>>> write: [Client 1073706356] Sending data of size 23
+>>> homekit_client_process: [Client 1073706356] Finished processing
+Error	2024-10-04 06:07:00	HTTP_GET /var: Not found: "OBSTRUCTION_DETECTED"  From: 192.168.3.1
+Info	2024-10-04 06:07:04	Disconnected!
+Info	2024-10-04 06:07:04	Closing client connection
+>>> homekit_server_close_client: [Client 1073706356] The socket is stopped
+
+Info	2024-10-04 06:07:20	Got new client: local 192.168.3.76:5556, remote 192.168.3.28:63801
+>>> homekit_client_process: [Client 1073705964] Got 157 incoming data, encrypted is false
+>>> homekit_server_on_body: http_parser length=37
+>>> homekit_server_on_message_complete: http_parser message_complete
+>>> homekit_server_on_pair_verify: HomeKit Pair Verify
+>>> homekit_server_on_pair_verify: Free heap: 23296
+Info	2024-10-04 06:07:20	Pair Verify Step 1/2
+>>> homekit_server_on_pair_verify: [Client 1073705964] Importing device Curve25519 public key
+>>> homekit_server_on_pair_verify: [Client 1073705964] Generating accessory Curve25519 key
+>>> homekit_server_on_pair_verify: [Client 1073705964] Exporting accessory Curve25519 public key
+>>> homekit_server_on_pair_verify: [Client 1073705964] Generating Curve25519 shared secret
+>>> homekit_server_on_pair_verify: [Client 1073705964] Generating signature
+>>> homekit_server_on_pair_verify: [Client 1073705964] Generating proof
+>>> homekit_server_on_pair_verify: [Client 1073705964] Encrypting response
+>>> send_tlv_response: [Client 1073705964] Sending TLV response
+>>> client_send: [Client 1073705964] send data size=244, encrypted=false
+>>> write: [Client 1073705964] Sending data of size 244
+### [ 252829] pair_verify took    562ms
+    Free heap: 22424
+>>> homekit_client_process: [Client 1073705964] Finished processing
+>>> homekit_client_process: [Client 1073705964] Got 246 incoming data, encrypted is false
+>>> homekit_server_on_body: http_parser length=125
+>>> homekit_server_on_message_complete: http_parser message_complete
+>>> homekit_server_on_pair_verify: HomeKit Pair Verify
+>>> homekit_server_on_pair_verify: Free heap: 23008
+Info	2024-10-04 06:07:21	Pair Verify Step 2/2
+>>> homekit_server_on_pair_verify: [Client 1073705964] Decrypting payload
+>>> homekit_server_on_pair_verify: [Client 1073705964] Searching pairing with 5E409937-DEAA-4A6C-B1B2-F2B85E602F50
+Info	2024-10-04 06:07:21	Found pairing with 5E409937-DEAA-4A6C-B1B2-F2B85E602F50
+>>> homekit_server_on_pair_verify: [Client 1073705964] Verifying device signature
+Info	2024-10-04 06:07:21	Call ge_double_scalarmult_vartime_lowmem in ge_low_mem.c
+>>> send_tlv_response: [Client 1073705964] Sending TLV response
+>>> client_send: [Client 1073705964] send data size=105, encrypted=false
+>>> write: [Client 1073705964] Sending data of size 105
+Info	2024-10-04 06:07:22	Verification successful, secure session established
+### [ 254581] pair_verify took   1522ms
+    Free heap: 22536
+>>> homekit_client_process: [Client 1073705964] Finished processing
+>>> homekit_client_process: [Client 1073705964] Got 77 incoming data, encrypted is true
+>>> homekit_client_process: [Client 1073705964] Decrypting data
+>>> homekit_client_process: [Client 1073705964] Decrypted 59 bytes, available 0
+>>> homekit_server_on_message_complete: http_parser message_complete
+Info	2024-10-04 06:07:22	Get Accessories
+>>> homekit_server_on_get_accessories: Free heap: 23280
+>>> client_send: [Client 1073705964] send data size=107, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 107
+>>> write: [Client 1073705964] Sending data of size 125
+>>> homekit_server_on_get_accessories: [Client 1073705964] Get Accessories, start send json body
+>>> client_send_chunk: [Client 1073705964] client_send_chunk, size=508, offset=5
+>>> client_send: [Client 1073705964] send data size=515, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 515
+>>> write: [Client 1073705964] Sending data of size 533
+>>> client_send_chunk: [Client 1073705964] client_send_chunk, size=508, offset=5
+>>> client_send: [Client 1073705964] send data size=515, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 515
+>>> write: [Client 1073705964] Sending data of size 533
+>>> client_send_chunk: [Client 1073705964] client_send_chunk, size=107, offset=4
+>>> client_send: [Client 1073705964] send data size=113, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 113
+>>> write: [Client 1073705964] Sending data of size 131
+>>> client_send_chunk: [Client 1073705964] client_send_chunk, size=0, offset=3
+>>> client_send: [Client 1073705964] send data size=5, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 5
+>>> write: [Client 1073705964] Sending data of size 23
+### [ 254796] get_accessories took    159ms
+>>> homekit_client_process: [Client 1073705964] Finished processing
+>>> homekit_client_process: [Client 1073705964] Got 88 incoming data, encrypted is true
+>>> homekit_client_process: [Client 1073705964] Decrypting data
+>>> homekit_client_process: [Client 1073705964] Decrypted 70 bytes, available 0
+>>> homekit_server_on_message_complete: http_parser message_complete
+Info	2024-10-04 06:07:22	Get Characteristics
+>>> homekit_server_on_get_characteristics: Free heap: 23424
+>>> homekit_server_on_get_characteristics: [Client 1073705964] Query parameter id = 1.9
+>>> homekit_server_on_get_characteristics: [Client 1073705964] Requested characteristic info for 1.9
+>>> client_send: [Client 1073705964] send data size=107, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 107
+>>> write: [Client 1073705964] Sending data of size 125
+>>> homekit_server_on_get_characteristics: [Client 1073705964] Requested characteristic info for 1.9
+>>> client_send_chunk: [Client 1073705964] client_send_chunk, size=53, offset=4
+>>> client_send: [Client 1073705964] send data size=59, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 59
+>>> write: [Client 1073705964] Sending data of size 77
+>>> client_send_chunk: [Client 1073705964] client_send_chunk, size=0, offset=3
+>>> client_send: [Client 1073705964] send data size=5, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 5
+>>> write: [Client 1073705964] Sending data of size 23
+>>> homekit_client_process: [Client 1073705964] Finished processing
+>>> homekit_client_process: [Client 1073705964] Got 88 incoming data, encrypted is true
+>>> homekit_client_process: [Client 1073705964] Decrypting data
+>>> homekit_client_process: [Client 1073705964] Decrypted 70 bytes, available 0
+>>> homekit_server_on_message_complete: http_parser message_complete
+Info	2024-10-04 06:07:23	Get Characteristics
+>>> homekit_server_on_get_characteristics: Free heap: 23424
+>>> homekit_server_on_get_characteristics: [Client 1073705964] Query parameter id = 1.5
+>>> homekit_server_on_get_characteristics: [Client 1073705964] Requested characteristic info for 1.5
+>>> client_send: [Client 1073705964] send data size=107, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 107
+>>> write: [Client 1073705964] Sending data of size 125
+>>> homekit_server_on_get_characteristics: [Client 1073705964] Requested characteristic info for 1.5
+>>> client_send_chunk: [Client 1073705964] client_send_chunk, size=56, offset=4
+>>> client_send: [Client 1073705964] send data size=62, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 62
+>>> write: [Client 1073705964] Sending data of size 80
+>>> client_send_chunk: [Client 1073705964] client_send_chunk, size=0, offset=3
+>>> client_send: [Client 1073705964] send data size=5, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 5
+>>> write: [Client 1073705964] Sending data of size 23
+>>> homekit_client_process: [Client 1073705964] Finished processing
+>>> homekit_client_process: [Client 1073705964] Got 88 incoming data, encrypted is true
+>>> homekit_client_process: [Client 1073705964] Decrypting data
+>>> homekit_client_process: [Client 1073705964] Decrypted 70 bytes, available 0
+>>> homekit_server_on_message_complete: http_parser message_complete
+Info	2024-10-04 06:07:23	Get Characteristics
+>>> homekit_server_on_get_characteristics: Free heap: 23424
+>>> homekit_server_on_get_characteristics: [Client 1073705964] Query parameter id = 1.5
+>>> homekit_server_on_get_characteristics: [Client 1073705964] Requested characteristic info for 1.5
+>>> client_send: [Client 1073705964] send data size=107, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 107
+>>> write: [Client 1073705964] Sending data of size 125
+>>> homekit_server_on_get_characteristics: [Client 1073705964] Requested characteristic info for 1.5
+>>> client_send_chunk: [Client 1073705964] client_send_chunk, size=56, offset=4
+>>> client_send: [Client 1073705964] send data size=62, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 62
+>>> write: [Client 1073705964] Sending data of size 80
+>>> client_send_chunk: [Client 1073705964] client_send_chunk, size=0, offset=3
+>>> client_send: [Client 1073705964] send data size=5, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 5
+>>> homekit_client_process: [Client 1073705964] Finished processing
+>>> homekit_client_process: [Client 1073705964] Got 187 incoming data, encrypted is true
+>>> homekit_client_process: [Client 1073705964] Decrypting data
+>>> homekit_client_process: [Client 1073705964] Decrypted 169 bytes, available 0
+>>> homekit_server_on_body: http_parser length=50
+>>> homekit_server_on_message_complete: http_parser message_complete
+Info	2024-10-04 06:07:23	Update Characteristics
+>>> homekit_server_on_update_characteristics: Free heap: 23304
+>>> homekit_server_on_update_characteristics: [Client 1073705964] Processing element {
+  "aid":	1,
+  "iid":	10,
+  "ev":	true
+}
+>>> homekit_server_on_update_characteristics: [Client 1073705964] There were no processing errors, sending No Content response
+>>> client_send: [Client 1073705964] send data size=27, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 27
+>>> write: [Client 1073705964] Sending data of size 45
+### [ 255351] update_characteristics took     54ms
+>>> homekit_client_process: [Client 1073705964] Finished processing
+>>> homekit_client_process: [Client 1073705964] Got 88 incoming data, encrypted is true
+>>> homekit_client_process: [Client 1073705964] Decrypting data
+>>> homekit_client_process: [Client 1073705964] Decrypted 70 bytes, available 0
+>>> homekit_server_on_message_complete: http_parser message_complete
+Info	2024-10-04 06:07:23	Get Characteristics
+>>> homekit_server_on_get_characteristics: Free heap: 23408
+>>> homekit_server_on_get_characteristics: [Client 1073705964] Query parameter id = 1.9
+>>> homekit_server_on_get_characteristics: [Client 1073705964] Requested characteristic info for 1.9
+>>> client_send: [Client 1073705964] send data size=107, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 107
+>>> write: [Client 1073705964] Sending data of size 125
+>>> homekit_server_on_get_characteristics: [Client 1073705964] Requested characteristic info for 1.9
+>>> client_send_chunk: [Client 1073705964] client_send_chunk, size=53, offset=4
+>>> client_send: [Client 1073705964] send data size=59, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 59
+>>> write: [Client 1073705964] Sending data of size 77
+>>> client_send_chunk: [Client 1073705964] client_send_chunk, size=0, offset=3
+>>> client_send: [Client 1073705964] send data size=5, encrypted=true
+>>> client_send_encrypted_: [Client 1073705964] Send encrypted of size 5
+>>> write: [Client 1073705964] Sending data of size 23
+>>> homekit_client_process: [Client 1073705964] Finished processing
+Info	2024-10-04 06:07:29	Disconnected!
+Info	2024-10-04 06:07:29	Closing client connection
+>>> homekit_server_close_client: [Client 1073705964] The socket is stopped
+
+*/
+
+#pragma endregion
+
+
+//END Protocols
+#pragma endregion
+
+#pragma region LockWebServer
+static void LockWebServer(bool enterLock)
+{
+  if(enterLock)
+  {
+    VERBOSE("Enter LockWebServer\n");
+  }
+  else
+  {
+    VERBOSE("Leave LockWebServer\n");
+  }
+}
+
+#pragma endregion
+
+#pragma region Globals
+
+static client_context_t* current_client_context = NULL;
+static homekit_server_t* running_server = nullptr;
+static WiFiEventHandler arduino_homekit_gotiphandler;
+
+// Arduino ESP8266 MDNS: call this function only once when WiFi STA is connected!
+static bool homekit_mdns_started = false;
+
+static const char PROGMEM json_200_response_headers_progmem[] = "HTTP/1.1 200 OK\r\n"
+"Content-Type: application/hap+json\r\n"
+"Transfer-Encoding: chunked\r\n"
+"Connection: keep-alive\r\n\r\n";
+
+static const char PROGMEM json_207_response_headers_progmem[] = "HTTP/1.1 207 Multi-Status\r\n"
+"Content-Type: application/hap+json\r\n"
+"Transfer-Encoding: chunked\r\n"
+"Connection: keep-alive\r\n\r\n";
+
+pairing_context_t* saved_preinit_pairing_context = nullptr;
+
+#pragma endregion
+
+#pragma region Protos
 void client_context_free(client_context_t* c);
 void pairing_context_free(pairing_context_t* context);
 void homekit_server_close_client(homekit_server_t* server, client_context_t* context);
 bool arduino_homekit_preinit(homekit_server_t* server);
+void homekit_client_process(client_context_t* context);
+void send_tlv_response(client_context_t* context, tlv_values_t* values);
+
+//pairing context
+void client_notify_characteristic(homekit_characteristic_t* ch, homekit_value_t value, void* client);
+
+
+#pragma endregion
 
 #pragma region server_new
 homekit_server_t* server_new()
@@ -125,7 +684,7 @@ homekit_server_t* server_new()
 
 #pragma endregion
 
-#pragma region MyRegion
+#pragma region server_free
 void server_free(homekit_server_t* server)
 {
   if(server->pairing_context)
@@ -288,8 +847,6 @@ void client_context_free(client_context_t* c)
 
 #pragma endregion
 
-pairing_context_t* saved_preinit_pairing_context = nullptr;
-
 #pragma region pairing_context_new
 pairing_context_t* pairing_context_new()
 {
@@ -326,12 +883,6 @@ void pairing_context_free(pairing_context_t* context)
 }
 
 #pragma endregion
-
-//=====================
-//pairing context
-//=====================
-
-void client_notify_characteristic(homekit_characteristic_t* ch, homekit_value_t value, void* client);
 
 #pragma region write_characteristic_json
 void write_characteristic_json(json_stream* json, client_context_t* client,
@@ -430,7 +981,7 @@ void write_characteristic_json(json_stream* json, client_context_t* client,
       case homekit_unit_none:
         break;
       case homekit_unit_celsius:
-        unit_str = "celsius";
+        unit_str = "Celsius";
         break;
       case homekit_unit_percentage:
         unit_str = "percentage";
@@ -439,7 +990,7 @@ void write_characteristic_json(json_stream* json, client_context_t* client,
         unit_str = "arcdegrees";
         break;
       case homekit_unit_lux:
-        unit_str = "lux";
+        unit_str = "Lux";
         break;
       case homekit_unit_seconds:
         unit_str = "seconds";
@@ -527,6 +1078,23 @@ void write_characteristic_json(json_stream* json, client_context_t* client,
     }
     else
     {
+      #if 0
+      if(ch->getter_ex)
+      {
+        using namespace HBHomeKit;
+        char valbuf[64]{};
+        homekit_characteristic_t* Ch = const_cast<homekit_characteristic_t*>(ch);
+
+        homekit_value_destruct(&Ch->value);
+        homekit_value_copy(&Ch->value, &v);
+
+        to_string(ch->value, valbuf, sizeof(valbuf));
+        valbuf[sizeof(valbuf) - 1] = 0;
+        INFO("Assigned: \"%s\" = %s", ch->description, valbuf);
+      }
+      #endif // 0
+
+
       switch(v.format)
       {
         case homekit_format_bool:
@@ -670,7 +1238,7 @@ void write(client_context_t* context, byte* data, int data_size)
     // So we believe here is disconnected.
     context->disconnect = true;
     homekit_server_close_client(context->server, context);
-    // We consider the socket is 'closed' when error in writing (eg. the remote client is disconnected, NO tcp ack receive).
+    // We consider the socket is 'closed' when error in writing (e.g. the remote client is disconnected, NO tcp ack receive).
     // Closing the socket causes memory-leak if some data has not been sent (the write_buffer did not free)
     // To fix this memory-leak, add tcp_abandon(_pcb, 0); in ClientContext.h of ESP8266WiFi-library.
   }
@@ -950,8 +1518,6 @@ void send_client_events(client_context_t* context, client_event_t* events)
 
 #pragma endregion
 
-void send_tlv_response(client_context_t* context, tlv_values_t* values);
-
 #pragma region send_tlv_error_response
 void send_tlv_error_response(client_context_t* context, int state, TLVError error)
 {
@@ -1013,16 +1579,6 @@ void send_tlv_response(client_context_t* context, tlv_values_t* values)
 }
 
 #pragma endregion
-
-static const char PROGMEM json_200_response_headers_progmem[] = "HTTP/1.1 200 OK\r\n"
-"Content-Type: application/hap+json\r\n"
-"Transfer-Encoding: chunked\r\n"
-"Connection: keep-alive\r\n\r\n";
-
-static const char PROGMEM json_207_response_headers_progmem[] = "HTTP/1.1 207 Multi-Status\r\n"
-"Content-Type: application/hap+json\r\n"
-"Transfer-Encoding: chunked\r\n"
-"Connection: keep-alive\r\n\r\n";
 
 #pragma region send_json_response
 void send_json_response(client_context_t* context, int status_code, byte* payload, size_t payload_size)
@@ -1149,15 +1705,15 @@ void homekit_server_on_identify(client_context_t* context)
     return;
   }
   send_204_response(context);
-  homekit_accessory_t* accessory = homekit_accessory_by_id(context->server->config->accessories,
-    1);
+  homekit_accessory_t* accessory 
+    = homekit_accessory_by_id(context->server->config->accessories, 1);
   if(!accessory)
   {
     return;
   }
 
-  homekit_service_t* accessory_info = homekit_service_by_type(accessory,
-    HOMEKIT_SERVICE_ACCESSORY_INFORMATION);
+  homekit_service_t* accessory_info 
+    = homekit_service_by_type(accessory, HOMEKIT_SERVICE_ACCESSORY_INFORMATION);
   if(!accessory_info)
   {
     return;
@@ -1360,13 +1916,13 @@ void homekit_server_on_pair_setup(client_context_t* context, const byte* data, s
 
         CLIENT_DEBUG(context, "Decrypting payload");
         size_t decrypted_data_size = 0;
-        crypto_chacha20poly1305_decrypt(shared_secret, (byte*)"\x0\x0\x0\x0PS-Msg05", NULL, 0,
+        crypto_chacha20poly1305_decrypt(shared_secret, (const byte*)"\x0\x0\x0\x0PS-Msg05", NULL, 0,
           tlv_encrypted_data->value, tlv_encrypted_data->size,
           NULL, &decrypted_data_size);
 
         byte* decrypted_data = (byte*)malloc(decrypted_data_size);
         // TODO: check malloc result
-        r = crypto_chacha20poly1305_decrypt(shared_secret, (byte*)"\x0\x0\x0\x0PS-Msg05", NULL, 0,
+        r = crypto_chacha20poly1305_decrypt(shared_secret, (const byte*)"\x0\x0\x0\x0PS-Msg05", NULL, 0,
           tlv_encrypted_data->value, tlv_encrypted_data->size, decrypted_data,
           &decrypted_data_size);
         if(r)
@@ -2069,8 +2625,6 @@ void homekit_server_on_pair_verify(client_context_t* context, const byte* data, 
 }
 
 #pragma endregion
-
-void homekit_client_process(client_context_t* context);
 
 #pragma region homekit_server_on_get_accessories
 void homekit_server_on_get_accessories(client_context_t* context)
@@ -2779,6 +3333,7 @@ HAPStatus process_characteristics_update(const cJSON* j_ch, client_context_t* co
 
 #pragma endregion
 
+#pragma region homekit_server_on_update_characteristics
 void homekit_server_on_update_characteristics(client_context_t* context, const byte* data, size_t size)
 {
   DEBUG_TIME_BEGIN();
@@ -2875,6 +3430,9 @@ void homekit_server_on_update_characteristics(client_context_t* context, const b
   DEBUG_TIME_END("update_characteristics");
 }
 
+#pragma endregion
+
+#pragma region homekit_server_on_pairings
 void homekit_server_on_pairings(client_context_t* context, const byte* data, size_t size)
 {
   DEBUG("HomeKit Pairings"); DEBUG_HEAP();
@@ -3155,6 +3713,9 @@ void homekit_server_on_pairings(client_context_t* context, const byte* data, siz
   tlv_free(message);
 }
 
+#pragma endregion
+
+#pragma region homekit_server_on_reset
 void homekit_server_on_reset(client_context_t* context)
 {
   INFO("Reset HomeKit Server");
@@ -3167,6 +3728,9 @@ void homekit_server_on_reset(client_context_t* context)
   homekit_system_restart();
 }
 
+#pragma endregion
+
+#pragma region homekit_server_on_resource
 void homekit_server_on_resource(client_context_t* context)
 {
   CLIENT_INFO(context, "Resource"); DEBUG_HEAP();
@@ -3179,10 +3743,10 @@ void homekit_server_on_resource(client_context_t* context)
 
   context->server->config->on_resource(context->body, context->body_length);
 }
-//=============================================
-// parse data
-//=============================================
 
+#pragma endregion
+
+#pragma region homekit_server_on_url
 int homekit_server_on_url(http_parser* parser, const char* data, size_t length)
 {
   client_context_t* context = (client_context_t*)parser->data;
@@ -3254,6 +3818,9 @@ int homekit_server_on_url(http_parser* parser, const char* data, size_t length)
   return 0;
 }
 
+#pragma endregion
+
+#pragma region homekit_server_on_body
 int homekit_server_on_body(http_parser* parser, const char* data, size_t length)
 {
   DEBUG("http_parser length=%d", length);
@@ -3266,6 +3833,9 @@ int homekit_server_on_body(http_parser* parser, const char* data, size_t length)
   return 0;
 }
 
+#pragma endregion
+
+#pragma region homekit_server_on_message_complete
 int homekit_server_on_message_complete(http_parser* parser)
 {
   DEBUG("http_parser message_complete");
@@ -3354,6 +3924,9 @@ int homekit_server_on_message_complete(http_parser* parser)
   return 0;
 }
 
+#pragma endregion
+
+#pragma region make_http_parser_settings
 http_parser_settings make_http_parser_settings()
 {
   http_parser_settings settings;
@@ -3363,6 +3936,9 @@ http_parser_settings make_http_parser_settings()
   return settings;
 }
 
+#pragma endregion
+
+#pragma region homekit_http_parser_settings
 //sorry, unimplemented: non-trivial designated initializers not supported
 //static http_parser_settings homekit_http_parser_settings = {
 //    .on_url = homekit_server_on_url,
@@ -3373,6 +3949,9 @@ http_parser_settings make_http_parser_settings()
 //struct A a={b:1,c:2}；
 static http_parser_settings homekit_http_parser_settings = make_http_parser_settings();
 
+#pragma endregion
+
+#pragma region homekit_client_process
 void homekit_client_process(client_context_t* context)
 {
   //    int data_len = read(
@@ -3460,11 +4039,16 @@ void homekit_client_process(client_context_t* context)
   }
 }
 
+#pragma endregion
+
+#pragma region homekit_server_close_client
 void homekit_server_close_client(homekit_server_t* server, client_context_t* context)
 {
   CLIENT_INFO(context, "Closing client connection");
   context->step = HOMEKIT_CLIENT_STEP_END;
   server->nfds--;
+
+  LockWebServer(false);
 
   if(context->socket)
   {
@@ -3501,9 +4085,11 @@ void homekit_server_close_client(homekit_server_t* server, client_context_t* con
   client_context_free(context);
 }
 
+#pragma endregion
+
+#pragma region homekit_server_accept_client
 client_context_t* homekit_server_accept_client(homekit_server_t* server)
 {
-
   if(!server->wifi_server)
   {
     ERROR("The server's WiFiServer is NULL!");
@@ -3531,8 +4117,14 @@ client_context_t* homekit_server_accept_client(homekit_server_t* server)
     wifiClient->localIP().toString().c_str(), wifiClient->localPort(),
     wifiClient->remoteIP().toString().c_str(), wifiClient->remotePort());
 
-  wifiClient->keepAlive(HOMEKIT_SOCKET_KEEPALIVE_IDLE_SEC,
-    HOMEKIT_SOCKET_KEEPALIVE_INTERVAL_SEC, HOMEKIT_SOCKET_KEEPALIVE_IDLE_COUNT);
+  LockWebServer(true);
+
+  wifiClient->keepAlive
+  (
+    HOMEKIT_SOCKET_KEEPALIVE_IDLE_SEC,
+    HOMEKIT_SOCKET_KEEPALIVE_INTERVAL_SEC,
+    HOMEKIT_SOCKET_KEEPALIVE_IDLE_COUNT
+  );
   wifiClient->setNoDelay(true);
   wifiClient->setSync(false);
   wifiClient->setTimeout(HOMEKIT_SOCKET_TIMEOUT);
@@ -3551,6 +4143,9 @@ client_context_t* homekit_server_accept_client(homekit_server_t* server)
   return context;
 }
 
+#pragma endregion
+
+#pragma region homekit_server_process_notifications
 //iPhone characteristic
 void homekit_server_process_notifications(homekit_server_t* server)
 {
@@ -3631,6 +4226,9 @@ void homekit_server_process_notifications(homekit_server_t* server)
 
 }
 
+#pragma endregion
+
+#pragma region homekit_client_need_process_data
 bool homekit_client_need_process_data(client_context_t* context)
 {
   if(context)
@@ -3641,6 +4239,9 @@ bool homekit_client_need_process_data(client_context_t* context)
   return false;
 }
 
+#pragma endregion
+
+#pragma region homekit_server_process
 //run in loop, include {accept_client, client_process, notifications}
 void homekit_server_process(homekit_server_t* server)
 {
@@ -3664,10 +4265,7 @@ void homekit_server_process(homekit_server_t* server)
   homekit_server_process_notifications(server);
 }
 
-//=====================================================
-// Arduino ESP8266 MDNS: call this function only once when WiFi STA is connected!
-//=====================================================
-bool homekit_mdns_started = false;
+#pragma endregion
 
 #pragma region homekit_mdns_init
 void homekit_mdns_init(homekit_server_t* server)
@@ -3816,6 +4414,7 @@ void homekit_mdns_init(homekit_server_t* server)
 
 #pragma endregion
 
+#pragma region homekit_update_config_number
 // Used to update the config_number ("c#" value of Bonjour)
 // Call this function when an accessory, service, or characteristic is added or removed on the accessory server.
 // See the official HAP specification for more information.
@@ -3831,7 +4430,7 @@ void homekit_update_config_number()
   }
   // range of 1-65535
   uint16_t c = running_server->config->config_number;
-  if(c==0)
+  if(c == 0)
     ERROR("config_number is 0, please check and retry");
   //c = (c > 0 && c < 65535) ? (c + 1) : 1;
   //running_server->config->config_number = c;
@@ -3841,6 +4440,9 @@ void homekit_update_config_number()
   INFO("Update config_number to %u", c);
 }
 
+#pragma endregion
+
+#pragma region homekit_accessory_id_generate
 int homekit_accessory_id_generate(char* accessory_id)
 {
   byte buf[6];
@@ -3853,6 +4455,9 @@ int homekit_accessory_id_generate(char* accessory_id)
   return 0;
 }
 
+#pragma endregion
+
+#pragma region homekit_accessory_key_generate
 int homekit_accessory_key_generate(ed25519_key* key)
 {
   int r = crypto_ed25519_generate(key);
@@ -3866,6 +4471,8 @@ int homekit_accessory_key_generate(ed25519_key* key)
 
   return 0;
 }
+
+#pragma endregion
 
 #pragma region homekit_server_init
 void homekit_server_init(const homekit_server_config_t* config)
@@ -3992,11 +4599,15 @@ void homekit_server_init(const homekit_server_config_t* config)
 
 #pragma endregion
 
+#pragma region homekit_server_reset
 void homekit_server_reset()
 {
   homekit_storage_reset();
 }
 
+#pragma endregion
+
+#pragma region homekit_is_paired
 bool homekit_is_paired()
 {
   bool paired = false;
@@ -4018,6 +4629,9 @@ bool homekit_is_paired()
   return paired;
 }
 
+#pragma endregion
+
+#pragma region homekit_get_accessory_id
 int homekit_get_accessory_id(char* buffer, size_t size)
 {
   if(size < ACCESSORY_ID_SIZE + 1)
@@ -4030,6 +4644,9 @@ int homekit_get_accessory_id(char* buffer, size_t size)
   return 0;
 }
 
+#pragma endregion
+
+#pragma region homekit_get_setup_uri
 int homekit_get_setup_uri(const homekit_server_config_t* config, char* buffer, size_t buffer_size)
 {
   static const char base36Table[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -4088,6 +4705,9 @@ int homekit_get_setup_uri(const homekit_server_config_t* config, char* buffer, s
   return 0;
 }
 
+#pragma endregion
+
+#pragma region arduino_homekit_preinit
 // Pre-initialize the pairing_context used in Pair-Setup 1/3
 // For avoiding timeout caused socket disconnection from iOS device.
 bool arduino_homekit_preinit(homekit_server_t* server)
@@ -4168,6 +4788,9 @@ bool arduino_homekit_preinit(homekit_server_t* server)
   return true;
 }
 
+#pragma endregion
+
+#pragma region arduino_homekit_setup
 void arduino_homekit_setup(const homekit_server_config_t* config)
 {
   if(system_get_cpu_freq() != SYS_CPU_160MHZ)
@@ -4182,7 +4805,7 @@ void arduino_homekit_setup(const homekit_server_config_t* config)
   // otherwise the iOS will not show the Accessory
   arduino_homekit_gotiphandler = WiFi.onStationModeGotIP([](WiFiEventStationModeGotIP gotip)
     {
-      INFO("WiFi connected, ip: %s, mask: %s, gw: %s",
+      INFO("WiFi connected, IP: %s, mask: %s, gw: %s",
         gotip.ip.toString().c_str(), gotip.mask.toString().c_str(),
         gotip.gw.toString().c_str());
       if(running_server)
@@ -4196,6 +4819,9 @@ void arduino_homekit_setup(const homekit_server_config_t* config)
     });
 }
 
+#pragma endregion
+
+#pragma region arduino_homekit_loop
 void arduino_homekit_loop()
 {
   if(homekit_mdns_started)
@@ -4213,6 +4839,9 @@ void arduino_homekit_loop()
   }
 }
 
+#pragma endregion
+
+#pragma region arduino_homekit_connected_clients_count
 int arduino_homekit_connected_clients_count()
 {
   if(running_server)
@@ -4222,7 +4851,12 @@ int arduino_homekit_connected_clients_count()
   return -1;
 }
 
+#pragma endregion
+
+#pragma region arduino_homekit_get_running_server
 homekit_server_t* arduino_homekit_get_running_server()
 {
   return running_server;
 }
+
+#pragma endregion

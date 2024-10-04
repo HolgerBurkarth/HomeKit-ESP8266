@@ -3,7 +3,7 @@
 $CRT 10 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.cpp<< 30 Sep 2024  07:11:08 - (c) proDAD
+$DAT >>hb_homekit.cpp<< 04 Okt 2024  07:36:08 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -380,20 +380,22 @@ bool modify_value(homekit_value_t& value, const homekit_value_t& newValue)
   return true;
 }
 
-bool modify_value(homekit_characteristic_t* ch, const homekit_value_t& newValue)
+bool modify_value(const homekit_characteristic_t* ch, const homekit_value_t& newValue)
 {
   if(ch)
   {
+    homekit_characteristic_t* Ch = const_cast<homekit_characteristic_t*>(ch);
+
     if(ch->setter_ex)
     {
       if(&ch->value == &newValue || homekit_value_equal(&ch->value, &newValue))
         return false;
 
-      CallSetter(ch, newValue);
+      CallSetter(Ch, newValue);
     }
     else
     {
-      if(modify_value(ch->value, newValue))
+      if(modify_value(Ch->value, newValue))
       {
         INFO("modify_value: %s", to_string_debug(ch).c_str());
         return true;
@@ -489,6 +491,7 @@ template<> size_t format_text(char* buffer, size_t size, const char* const& valu
 
 const char* to_string(const homekit_value_t& value, char* buffer, size_t size)
 {
+  //Serial.printf("to_string  fmt=%d\n", value.format);
   buffer[0] = 0;
   switch(value.format)
   {
@@ -1367,6 +1370,19 @@ void CController::Setup()
       PerformWebServerVarRequest();
     });
 
+  WebServer.addHook([this](const String& method, const String& url, WiFiClient* client, ESP8266WebServer::ContentTypeFunction contentType)
+    {
+      #if 0
+      Serial.printf("Hook  Method: %s  URL: %s  From: %s\n"
+        , method.c_str(), url.c_str(), client->remoteIP().toString().c_str());
+      #endif
+
+      if(mDisableWebRequests)
+        return ESP8266WebServer::CLIENT_IS_GIVEN; // blocks the client
+      return ESP8266WebServer::CLIENT_REQUEST_CAN_CONTINUE;
+    });
+
+
   WebServer.begin();
   VERBOSE("Web-Server started");
 
@@ -1737,6 +1753,11 @@ void CController::PerformWebServerVarRequest()
       ResultText += WebServer.argName(ArgIndex);
       ResultText += F("\" ");
     }
+
+    // get IP of the client
+    ResultText += F(" From: ");
+    ResultText += WebServer.client().remoteIP().toString();
+
     ERROR("HTTP_GET /var: Not found: %s", ResultText.c_str());
   }
   else
@@ -1868,10 +1889,17 @@ void CController::InstallStdCMDs()
 #pragma region InstallStdVariables
 void CController::InstallStdVariables()
 {
-  #pragma region IP
-  SetVar("IP", [this](auto)
+  #pragma region LOCAL_IP
+  SetVar("LOCAL_IP", [this](auto)
     {
       return MakeTextEmitter(WiFi.localIP().toString());
+    });
+
+  #pragma endregion
+  #pragma region REMOTE_IP
+  SetVar("REMOTE_IP", [this](auto)
+    {
+      return MakeTextEmitter(WebServer.client().remoteIP().toString());
     });
 
   #pragma endregion
@@ -2402,6 +2430,14 @@ void CHomeKit::Loop()
 
   const uint32_t CurTick = millis();
   mLEDTimer.OnTick(CurTick);
+
+  #if 0
+  if(IsPaired() && system_get_cpu_freq() == SYS_CPU_160MHZ)
+  {
+    system_update_cpu_freq(SYS_CPU_80MHZ);
+    VERBOSE("Update the CPU to run at 80MHz");
+  }
+  #endif
 }
 
 #pragma endregion
