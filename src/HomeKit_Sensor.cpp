@@ -232,7 +232,7 @@ function UpdateEventChart()
 
   if(Temperates.length > 1)
   {
-    EventChart.SetAxisColors('#e4e', '#f4f');
+    EventChart.SetAxisColors('#f6f', '#f4f');
     if(MaxTemp-MinTemp < 3)
     {
       EventChart.SetGridColor('#606');
@@ -269,18 +269,53 @@ function UpdateEventChart()
 
 function AddTemperature(value)
 {
+  var v = parseFloat(value);
+  if (isNaN(v))
+    return;
+
   if(Temperates.length > MaxEntries)
     Temperates.shift();
-  Temperates.push(parseFloat(value));
+  Temperates.push(v);
   UpdateEventChart();
 }
 function AddHumidity(value)
 {
+  var v = parseFloat(value);
+  if (isNaN(v))
+    return;
+
   if(Humidities.length > MaxEntries)
     Humidities.shift();
-  Humidities.push(parseFloat(value));
+  Humidities.push(v);
   //UpdateEventChart();
 }
+
+
+/*
+responseText: "Time;Temp:0.0;Hum:0.0;\n" ...
+*/
+function ParseEntries(responseText)
+{
+  var lines = responseText.split('\n');
+  for(var i = 0; i < lines.length; ++i)
+  {
+    var line = lines[i];
+    if(line.length < 1)
+      continue;
+
+    var parts = line.split(';');
+    if(parts.length < 3)
+      continue;
+
+    var time = parts[0];
+    var temp = parts[1].split(':')[1];
+    var hum  = parts[2].split(':')[1];
+
+    AddHumidity(hum);
+    AddTemperature(temp);
+  }
+}
+
 
 
 window.addEventListener('resize', ResizeEventChart);
@@ -293,15 +328,28 @@ window.addEventListener('load', (event) =>
   {
     ResizeEventChart();
 
+    setTimeout
+    (
+      function()
+      {
+        ForVar('ENTRIES',  responseText => ParseEntries(responseText) );
+        ForVar('HUMIDITY',    responseText => AddHumidity(responseText) );
+        ForVar('TEMPERATURE', responseText => AddTemperature(responseText) );
+
+      },
+      500
+    );
+
+
     setInterval
     (
       function()
-        {
-          ForVar('TEMPERATURE', responseText => AddTemperature(responseText) );
-          ForVar('HUMIDITY',    responseText => AddHumidity(responseText) );
+      {
+        ForVar('HUMIDITY',    responseText => AddHumidity(responseText) );
+        ForVar('TEMPERATURE', responseText => AddTemperature(responseText) );
 
-        },
-        1000
+      },
+      1000*60*5
     );
 
   }
@@ -402,6 +450,28 @@ void InstallVarsAndCmds(CController& c, CHost& host)
         IUnit::CSensorInfoArgs Args;
         host.ReadSensorInfo(Args);
         return MakeTextEmitter(String(Args.Value.Humidity.value_or(0.0f)));
+      })
+
+    .SetVar("ENTRIES", [&host](auto p)
+      {
+        IUnit::CEventRecorderArgs Args;
+        host.QueryEventRecorder(Args);
+        if(!Args.Value)
+          return MakeTextEmitter();
+
+        return Args.Value->EntriesEmitter();
+      })
+
+    .SetVar("RECORD_INTERVAL_SECS", [&host](auto p)
+      {
+        int Interval = 1;
+        IUnit::CEventRecorderArgs Args;
+        host.QueryEventRecorder(Args);
+        if(Args.Value)
+          Interval = Args.Value->RecordIntervalSec;
+          
+
+        return MakeTextEmitter(String(Interval));
       })
     ;
 }

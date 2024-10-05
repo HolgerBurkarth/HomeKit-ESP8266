@@ -9,7 +9,7 @@ using namespace HBHomeKit::Sensor;
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
-// Ignore Spelling:
+// Ignore Spelling: aht
 #pragma endregion
 #pragma region Includes
 #pragma once
@@ -22,14 +22,313 @@ namespace Sensor
 {
 #pragma endregion
 
+#pragma region +Support
+
+#pragma region ESensorType
+/* The type of the sensor.
+* @note The values are used as bit flags.
+*/
+enum class ESensorType : uint16_t
+{
+  None = 0x0000,
+  Temperature = 0x0001,
+  Humidity = 0x0002,
+
+  /* Useful combinations */
+  Temperature_Humidity = Temperature | Humidity,
+
+};
+
+#pragma endregion
+
 #pragma region CSensorInfo
 struct CSensorInfo
 {
   std::optional<float> Temperature;
   std::optional<float> Humidity;
+
+  bool Assign(const CSensorInfo& info)
+  {
+    bool Changed{};
+
+    if(info.Temperature)
+    {
+      if(!Temperature || *Temperature != *info.Temperature)
+      {
+        Temperature = *info.Temperature;
+        Changed = true;
+      }
+    }
+
+    if(info.Humidity)
+    {
+      if(!Humidity || *Humidity != *info.Humidity)
+      {
+        Humidity = *info.Humidity;
+        Changed = true;
+      }
+    }
+
+    return Changed;
+  }
+
 };
 #pragma endregion
 
+#pragma region CFixPoint
+template<typename T, int TShift>
+struct CFixPoint
+{
+  T Value{};
+  static constexpr int Shift = TShift;
+
+  constexpr CFixPoint() = default;
+  constexpr CFixPoint(T value) : Value(value) {}
+  constexpr CFixPoint(float v) { assign(v); }
+
+  constexpr void assign(float v)
+  {
+    v = std::clamp(v, min(), max());
+    Value = static_cast<T>(v * (1 << Shift));
+  }
+
+  constexpr static float max() { return std::numeric_limits<T>::max() / (1 << Shift); }
+  constexpr static float min() { return std::numeric_limits<T>::min() / (1 << Shift); }
+
+
+  constexpr operator T() const { return Value; }
+  constexpr operator float() const { return static_cast<float>(Value) / (1 << Shift); }
+
+  constexpr CFixPoint& operator=(T value)
+  {
+    Value = value;
+    return *this;
+  }
+  constexpr CFixPoint& operator=(float value)
+  {
+    assign(value);
+    return *this;
+  }
+
+
+  constexpr CFixPoint& operator=(const CFixPoint& value)
+  {
+    Value = value.Value;
+    return *this;
+  }
+
+};
+
+using fix16_16_t = CFixPoint<int32_t, 16>;
+using fix10_6_t = CFixPoint<int16_t, 6>;
+
+#pragma endregion
+
+#pragma region CDateTime / CDividerDateTime
+
+struct CDateTime
+{
+  using short_t = uint16_t;
+
+  time_t BaseTime{};
+
+  void SetNow() { time(&BaseTime); }
+
+};
+
+template<uint32_t Diver>
+struct CDividerDateTime : CDateTime
+{
+  static constexpr uint32_t Divider = Diver;
+
+  short_t ToShortTime(time_t now) const
+  {
+    return static_cast<uint16_t>((now - BaseTime) / Divider);
+  }
+  short_t Now2ShortTime() const
+  {
+    return ToShortTime(time(nullptr));
+  }
+
+  time_t ToTime(short_t st) const
+  {
+    return BaseTime + st * Divider;
+  }
+
+};
+
+using minute_divider_t = CDividerDateTime<60>;
+using minute16_t = minute_divider_t::short_t;
+
+extern minute_divider_t gbMinuteDivider;
+
+#pragma endregion
+
+#pragma region CEventRecorder
+struct CEventRecorder
+{
+  #pragma region Types
+  struct CEvent // 8 bytes
+  {
+    #pragma region Fields
+    minute16_t Minute{};
+    fix10_6_t Temperature{};
+    fix10_6_t Humidity{};
+
+    bool HasTemperature : 1;
+    bool HasHumidity : 1;
+
+    #pragma endregion
+
+    #pragma region Construction
+    CEvent() = default;
+    CEvent(const CSensorInfo& info)
+    {
+      Minute = gbMinuteDivider.Now2ShortTime();
+      if(info.Temperature)
+      {
+        Temperature = *info.Temperature;
+        HasTemperature = true;
+      }
+      if(info.Humidity)
+      {
+        Humidity = *info.Humidity;
+        HasHumidity = true;
+      }
+    }
+
+    #pragma endregion
+
+    #pragma region Methods
+
+    #pragma region ToInfo
+    CSensorInfo ToInfo() const
+    {
+      CSensorInfo Info;
+      if(HasTemperature)
+        Info.Temperature = Temperature;
+      if(HasHumidity)
+        Info.Humidity = Humidity;
+      return Info;
+    }
+
+    #pragma endregion
+
+    #pragma region ToTime
+    time_t ToTime() const { return gbMinuteDivider.ToTime(Minute); }
+
+    #pragma endregion
+
+    #pragma region ToString
+    String ToString() const
+    {
+      String s;
+      s.reserve(40);
+
+      time_t Time = ToTime();
+      char Buf[20];
+      strftime(Buf, sizeof(Buf), "%Y-%m-%dT%H:%M:%SZ", gmtime(&Time));
+      s += Buf;
+      s += F(";");
+
+      if(HasTemperature)
+      {
+        s += F("Temp:");
+        s += static_cast<float>(Temperature);
+        s += F(";");
+      }
+      if(HasHumidity)
+      {
+        s += F("Hum:");
+        s += static_cast<float>(Humidity);
+        s += F(";");
+      }
+      return s;
+    }
+
+    #pragma endregion
+
+
+    //END CEvent
+    #pragma endregion
+
+  };
+
+  #pragma endregion
+
+  #pragma region Fields
+  std::vector<CEvent> mEntries;
+  size_t MaxEntries{ 288 }; // 24h by 5min steps | sizeof(CEvent) * 288 = 2304 bytes
+  int RecordIntervalSec{ 60 }; // 1 minute
+
+
+  #pragma endregion
+
+  #pragma region clear
+  void clear()
+  {
+    mEntries.clear();
+  }
+
+  #pragma endregion
+
+  #pragma region reserve
+  void reserve(size_t count)
+  {
+    MaxEntries = count;
+    mEntries.reserve(count);
+  }
+  #pragma endregion
+
+  #pragma region push_back
+  void push_back(const CSensorInfo& info)
+  {
+    if(mEntries.size() >= MaxEntries)
+      mEntries.erase(mEntries.begin());
+    mEntries.push_back(CEvent(info));
+  }
+
+  #pragma endregion
+
+  #pragma region EntriesEmitter
+  /*
+  * @return The emitter for the entries:
+  */
+  CTextEmitter EntriesEmitter() const
+  {
+    return [Entries = &mEntries](Stream& out)
+      {
+        for(const auto& e : *Entries)
+        {
+          //Serial.println(e.ToString());
+          out << e.ToString() << F("\n");
+        }
+      };
+  }
+
+  #pragma endregion
+
+
+};
+
+using EventRecorder_Ptr = std::shared_ptr<CEventRecorder>;
+
+/* Creates a shared pointer from a static object that never calls a delete.
+* @example
+*  CEventRecorder EventRecorder;
+*  auto Ptr = MakeStaticPtr(EventRecorder)
+*/
+inline EventRecorder_Ptr MakeStaticPtr(CEventRecorder& pV)
+{
+  return EventRecorder_Ptr(&pV, [](CEventRecorder*) {});
+}
+
+//END CEventRecorder
+#pragma endregion
+
+
+//END Support
+#pragma endregion
 
 #pragma region IUnit
 /* The base class for all implementations of the sensor.
@@ -44,6 +343,7 @@ struct IUnit
 {
   #pragma region Types
   using CSensorInfoArgs = CArgs<CSensorInfo>;
+  using CEventRecorderArgs = CArgs<EventRecorder_Ptr>;
 
   struct CSetupArgs
   {
@@ -97,6 +397,7 @@ struct IUnit
   virtual void Start(CVoidArgs&) {}
   virtual void ReadSensorInfo(CSensorInfoArgs&) {}
   virtual void WriteSensorInfo(CSensorInfoArgs&) {}
+  virtual void QueryEventRecorder(CEventRecorderArgs&) {}
 
   //END Virtual Methods
   #pragma endregion
@@ -231,6 +532,10 @@ public:
   {
     InvokeMethod(&IUnit::WriteSensorInfo, args);
   }
+  void QueryEventRecorder(CEventRecorderArgs& args) override
+  {
+    InvokeMethod(&IUnit::QueryEventRecorder, args);
+  }
 
   #pragma endregion
 
@@ -333,7 +638,7 @@ struct CSensorService
   }
 
 
-  CSensorService(IUnit* pCtrl) noexcept
+  CSensorService(IUnit* pCtrl, ESensorType availableSensor) noexcept
     : CSensorService
     ({
       .UserPtr = reinterpret_cast<void*>(pCtrl),
@@ -377,6 +682,12 @@ struct CSensorService
 
       })
   {
+    uint32_t AS = static_cast<uint32_t>(availableSensor);
+
+    if(!(AS & static_cast<uint32_t>(ESensorType::Temperature)))
+      Temperature.getter_ex = nullptr;
+    if(!(AS & static_cast<uint32_t>(ESensorType::Humidity)))
+      Humidity.getter_ex = nullptr;
   }
 
   #pragma endregion
@@ -483,28 +794,90 @@ struct CSensorService
 #pragma region +Functions
 
 #pragma region Unit - Functions
+
+#pragma region MakeControlUnit
 /*
 * @brief
 */
 IUnit_Ptr MakeControlUnit();
 
-/*
-* @brief
-*/
-IUnit_Ptr MakeContinuousReadSensorUnit(uint32_t interval, std::function<CSensorInfo(void)> func);
+#pragma endregion
 
+#pragma region MakeContinuousReadSensorUnit
 /*
 * @brief
+* @example
+    MakeContinuousReadSensorUnit
+    ( 
+      1000,
+      [
+        Temperature = CKalman1DFilterF{ .R = 5e-3f },
+        Humidity    = CKalman1DFilterF{ .R = 5e-3f }
+      ]() mutable
+      {
+        //extern Adafruit_AHTX0 aht;
+        sensors_event_t humidity, temp;
+        aht.getEvent(&humidity, &temp);
+
+        CSensorInfo Info;
+        Info.Temperature = Temperature.Update(temp.temperature);
+        Info.Humidity = Humidity.Update(humidity.relative_humidity);
+        return Info;
+      }
+    )
+
+*/
+IUnit_Ptr MakeContinuousReadSensorUnit(uint32_t intervalMS, std::function<CSensorInfo(void)> func);
+
+#pragma endregion
+
+#pragma region MakeOnSensorChangedUnit
+/*
+* @brief
+* @example
+    MakeOnSensorChangedUnit([](const CSensorInfo& info)
+      {
+        display.clearDisplay();
+
+        if(info.Temperature)
+        {
+          display.setCursor(0, 20);
+          display.print("Temp: ");
+          display.print(*info.Temperature);
+          display.println(" C");
+        }
+        if(info.Humidity)
+        {
+          display.setCursor(0, 45);
+          display.print("Hum:  ");
+          display.print(*info.Humidity);
+          display.println(" %");
+        }
+        display.display();
+
+      })
 */
 IUnit_Ptr MakeOnSensorChangedUnit(std::function<void(const CSensorInfo&)> func);
 
 #pragma endregion
 
+
+//END Unit - Functions
+#pragma endregion
+
 #pragma region Install - Functions
 
+/*
+* @brief Adds the Start, Settings, HomeKit menu items to the controller.
+*/
+void AddMenuItems(CController& c);
+
+/*
+* @brief Installs the variables and commands for the HomeKit.
+* @vars TEMPERATURE, HUMIDITY
+*/
 void InstallVarsAndCmds(CController& c, CHost& host);
 
-void AddMenuItems(CController& c);
 
 /*
 * @brief Installs and configures everything for CSensorService.
