@@ -2744,7 +2744,7 @@ void write_characteristic_error(json_stream* json, uint32_t aid, uint32_t iid, i
 #pragma region homekit_server_on_get_characteristics
 void homekit_server_on_get_characteristics(client_context_t* context)
 {
-  CLIENT_INFO(context, "Get Characteristics"); DEBUG_HEAP();
+  CLIENT_DEBUG(context, "Get Characteristics"); DEBUG_HEAP();
 
   query_param_t* qp = context->endpoint_params;
   while(qp)
@@ -3337,7 +3337,7 @@ HAPStatus process_characteristics_update(const cJSON* j_ch, client_context_t* co
 void homekit_server_on_update_characteristics(client_context_t* context, const byte* data, size_t size)
 {
   DEBUG_TIME_BEGIN();
-  CLIENT_INFO(context, "Update Characteristics"); DEBUG_HEAP();
+  CLIENT_DEBUG(context, "Update Characteristics"); DEBUG_HEAP();
 
   char* data1 = strndup((char*)data, size);
   cJSON* json = cJSON_Parse(data1);

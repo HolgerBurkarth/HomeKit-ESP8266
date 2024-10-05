@@ -3,7 +3,7 @@
 $CRT 09 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.h<< 04 Okt 2024  07:35:39 - (c) proDAD
+$DAT >>hb_homekit.h<< 05 Okt 2024  11:00:23 - (c) proDAD
 
 using namespace HBHomeKit;
 *******************************************************************/
@@ -227,6 +227,8 @@ struct CKalman1DFilter
 
   }
 };
+
+using CKalman1DFilterF = CKalman1DFilter<float>;
 
 #pragma endregion
 
@@ -3053,6 +3055,75 @@ struct SimpleFileSystem
 };
 #pragma endregion
 
+#pragma region CArgs
+/* A template class for arguments that are passed to a method.
+* The class contains a value and a flag (Handled) that indicates whether
+* the value has been processed.
+*/
+template<typename T>
+struct CArgs
+{
+  #pragma region Fields
+  T       Value{};
+  uint8_t CallCount{};
+  bool    Handled{}; // True: The value has been processed and should not be processed again.
+
+  #pragma endregion
+
+  #pragma region Construction
+  CArgs() = default;
+  CArgs(const T& value) : Value(value) {}
+  CArgs(T&& value) noexcept : Value(std::move(value)) {}
+
+  #pragma endregion
+
+  #pragma region Methods
+  /* Reset the value and the Handled-flag.
+  */
+  void reset()
+  {
+    Value = T{};
+    CallCount = 0;
+    Handled = false;
+  }
+
+  #pragma endregion
+
+  #pragma region Operators
+  operator const T& () const { return Value; }
+  operator T& () { return Value; }
+
+  /* @return True if the value has been processed.
+  * @example
+  *   if(!args) ... // The value has not been processed
+  */
+  bool operator ! () const noexcept { return !Handled; }
+
+  CArgs& operator=(const T& value)
+  {
+    Value = value;
+    Handled = true;
+    return *this;
+  }
+
+  CArgs& operator=(T&& value) noexcept
+  {
+    Value = std::move(value);
+    Handled = true;
+    return *this;
+  }
+
+  #pragma endregion
+
+};
+
+/*
+* @note Workaround: bool is used as a placeholder for void.
+*/
+using CVoidArgs = CArgs<bool>;
+
+#pragma endregion
+
 
 #pragma region +HomeKit - Services
 /* More information about HomeKit services can be found at:
@@ -3304,7 +3375,7 @@ public:
   #pragma region CHomeKit(&Accessory, ...)
   /*
   * @example
-    CAHTSensorService Sensor{ ... };
+    CSensorService Sensor{ ... };
 
     const CDeviceService Device
     {
@@ -3883,27 +3954,56 @@ CTextEmitter UIUtils_JavaScript();
 * @member field GridColor
 * @member field NoniusColor
 * @member field DataColor
+* @member field DataLineWidth
 * @member field AxisNumberColor
 *
-* @param dataPoints Array of data points.
-*        Each data point is an array with two values [x, y] or one value y.
-* @member function SetDataPoints(dataPoints)
+* @member function Clear()
+* 
+* @member function SetMargins(left, right, top, bottom)
+* @member function SetHrzMargins(left, right)
+* @member function SetVrtMargins(top, bottom)
+*
+*   mode: (combination of)
+*    - ""         : no auto margins
+*    - "label"    : has labels
+*    - "numbers"  : has numbers
+*    - "left"     : (only for vertical axis) left side
+*    - "right"    : (only for vertical axis) right side
+* @member function AutoMargins(hrzAxisMode, vrtAxisMode)
+*
 *
 * @member function SetHrzAxis(start, end, step)
 * @member function SetVrtAxis(start, end, step)
 * @member function SwapXYAxis()
-* @member function Clear()
+* 
+* @member function ResetAxisColors()
+* @member function SetAxisColors(noniusColor, axisNumberColor)
+* @member function ResetGridColor()
+* @member function SetGridColor(gridColor)
 * @member function DrawHrzGrid()
 * @member function DrawVrtGrid()
+* @member function DrawHrzAxisNumbers()
+* 
+*   etage: [-1, 0, 1] (default = 1)
+*    - (-1) : inner grid, no numbers
+*    - (0)  : on axis, no numbers
+*    - (1)  : in combination with numbers
+* 
+*   leftSide: [true, false] (default = true);
+* @member function DrawHrzAxisLabel(labelText, etage)
+* @member function DrawVrtAxisNumbers(leftSide)
+* @member function DrawVrtAxisLabel(labelText, leftSide, etage)
 *
-* @param trackNumber [0 .. 3]
+*   trackNumber [0 .. 3]
 * @member function DrawEvent(trackNumber, x, txt, colorLine, colorBg)
-*
+* @member function DrawBoundaryBox(minValue, maxValue, fillColor, opacity)
+* 
+*  dataPoints Array of data points:
+*        Each data point is an array with two values [x, y] or one value y.
+* @member function SetDataPoints(dataPoints)
 * @member function DrawCurve()
 * @member function DrawDots()
-* @member function DrawHrzAxisNumbers()
-* @member function DrawVrtAxisNumbers()
-* @member function DrawBoundaryBox()
+*
 *
 * @example
 * var Chart = CChart(canvasElement);

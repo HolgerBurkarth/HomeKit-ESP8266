@@ -388,75 +388,6 @@ inline EventRecorder_Ptr MakeStaticPtr(CEventRecorder& pV)
 //END CEventRecorder
 #pragma endregion
 
-#pragma region CArgs
-/* A template class for arguments that are passed to a method.
-* The class contains a value and a flag (Handled) that indicates whether
-* the value has been processed.
-*/
-template<typename T>
-struct CArgs
-{
-  #pragma region Fields
-  T       Value{};
-  uint8_t CallCount{};
-  bool    Handled{}; // True: The value has been processed and should not be processed again.
-
-  #pragma endregion
-
-  #pragma region Construction
-  CArgs() = default;
-  CArgs(const T& value) : Value(value) {}
-  CArgs(T&& value) noexcept : Value(std::move(value)) {}
-
-  #pragma endregion
-
-  #pragma region Methods
-  /* Reset the value and the Handled-flag.
-  */
-  void reset()
-  {
-    Value = T{};
-    CallCount = 0;
-    Handled = false;
-  }
-
-  #pragma endregion
-
-  #pragma region Operators
-  operator const T& () const { return Value; }
-  operator T& () { return Value; }
-
-  /* @return True if the value has been processed.
-  * @example
-  *   if(!args) ... // The value has not been processed
-  */
-  bool operator ! () const noexcept { return !Handled; }
-
-  CArgs& operator=(const T& value)
-  {
-    Value = value;
-    Handled = true;
-    return *this;
-  }
-
-  CArgs& operator=(T&& value) noexcept
-  {
-    Value = std::move(value);
-    Handled = true;
-    return *this;
-  }
-
-  #pragma endregion
-
-};
-
-/*
-* @note Workaround: bool is used as a placeholder for void.
-*/
-using CVoidArgs = CArgs<bool>;
-
-#pragma endregion
-
 #pragma region ISystem
 /* Get and set the HomeKit states.
 * @note The value is sent to HomeKit when it is set.
@@ -850,8 +781,6 @@ struct CGarageDoorOpenerService : ISystem
   homekit_characteristic_t Name;
 
   CService<4> Service;
-
-
 
   #pragma endregion
 

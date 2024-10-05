@@ -909,7 +909,7 @@ h2 {
 }
 .Header small
 {
-  font-size: 0.4em;
+  font-size: 0.6em;
   float: left;
   background-color: #444;
   padding: 0.2em;
