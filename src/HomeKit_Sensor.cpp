@@ -3,7 +3,7 @@
 $CRT 05 Okt 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>HomeKit_Sensor.cpp<< 05 Okt 2024  11:32:10 - (c) proDAD
+$DAT >>HomeKit_Sensor.cpp<< 06 Okt 2024  07:12:02 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -174,7 +174,7 @@ var EventChartCanvasHD;
 var EventChart;
 var Temperates = []; // array of floats
 var Humidities = []; // array of floats
-const MaxEntries = 180;
+var MaxEntries = 288;
 
 
 function MakeEventChart()
@@ -232,7 +232,7 @@ function UpdateEventChart()
 
   if(Temperates.length > 1)
   {
-    EventChart.SetAxisColors('#f6f', '#f4f');
+    EventChart.SetAxisColors('#f4f', '#f8f');
     if(MaxTemp-MinTemp < 3)
     {
       EventChart.SetGridColor('#606');
@@ -245,10 +245,6 @@ function UpdateEventChart()
     EventChart.DrawVrtGrid();
     EventChart.DrawVrtAxisNumbers(true);
     EventChart.DrawVrtAxisLabel("Gard Celsius", true, -1);
-    EventChart.SetDataPoints(Temperates);
-    EventChart.DataColor = '#f4f';
-    EventChart.DataLineWidth = 3;
-    EventChart.DrawCurve();
   }
 
   if(Humidities.length > 1)
@@ -259,6 +255,19 @@ function UpdateEventChart()
     EventChart.DrawVrtGrid();
     EventChart.DrawVrtAxisNumbers(false);
     EventChart.DrawVrtAxisLabel("Humidities", false, -1);
+  }
+
+
+  if(Temperates.length > 1)
+  {
+    EventChart.SetDataPoints(Temperates);
+    EventChart.DataColor = '#f4f';
+    EventChart.DataLineWidth = 3;
+    EventChart.DrawCurve();
+  }
+
+  if(Humidities.length > 1)
+  {
     EventChart.SetDataPoints(Humidities);
     EventChart.DataColor = '#0ff';
     EventChart.DataLineWidth = 3;
@@ -316,6 +325,30 @@ function ParseEntries(responseText)
   }
 }
 
+function StartMaxEntries(value)
+{
+  MaxEntries = parseFloat(value);
+  if(isNaN(MaxEntries) || MaxEntries < 10)
+    MaxEntries = 288;
+}
+
+function StartPeriodicalUpdate(value)
+{
+  var IntervalMS = parseFloat(value);
+  if(isNaN(IntervalMS) || IntervalMS < 100)
+    IntervalMS = 1000;
+
+  setInterval
+  (
+    function()
+    {
+      ForVar('HUMIDITY',    responseText => AddHumidity(responseText) );
+      ForVar('TEMPERATURE', responseText => AddTemperature(responseText) );
+
+    },
+    IntervalMS
+  );
+}
 
 
 window.addEventListener('resize', ResizeEventChart);
@@ -335,21 +368,11 @@ window.addEventListener('load', (event) =>
         ForVar('ENTRIES',  responseText => ParseEntries(responseText) );
         ForVar('HUMIDITY',    responseText => AddHumidity(responseText) );
         ForVar('TEMPERATURE', responseText => AddTemperature(responseText) );
+        ForVar('MAX_RECORD_ENTRIES', responseText => StartMaxEntries(responseText) );
+        ForVar('RECORD_INTERVAL', responseText => StartPeriodicalUpdate(responseText) );
 
       },
       500
-    );
-
-
-    setInterval
-    (
-      function()
-      {
-        ForVar('HUMIDITY',    responseText => AddHumidity(responseText) );
-        ForVar('TEMPERATURE', responseText => AddTemperature(responseText) );
-
-      },
-      1000*60*5
     );
 
   }
@@ -413,8 +436,9 @@ CTextEmitter MainPage_HtmlBody()
 <div>
   <canvas id="Canvas" width="360" height="200"></canvas>
 </div>
+<br/>
 <table class='entrytab'>
-<caption>Current</caption>
+<caption>Measurements</caption>
   <tr>
     <th>Temperature</th>
     <td><div id="CurTemp"></div></td>
@@ -422,6 +446,19 @@ CTextEmitter MainPage_HtmlBody()
   <tr>
     <th>Humidity</th>
     <td><div id="CurHum"></div></td>
+  </tr>
+</table>
+<br/>
+<br/>
+<table class='entrytab'>
+<caption>Settings</caption>
+  <tr>
+    <th>Interval</th>
+    <td>{RECORD_INTERVAL_STR}</td>
+  </tr>
+  <tr>
+    <th>Total recording time</th>
+    <td>{TOTAL_RECORD_TIME_STR}</td>
   </tr>
 </table>
 
@@ -462,7 +499,7 @@ void InstallVarsAndCmds(CController& c, CHost& host)
         return Args.Value->EntriesEmitter();
       })
 
-    .SetVar("RECORD_INTERVAL_SECS", [&host](auto p)
+    .SetVar("RECORD_INTERVAL", [&host](auto p)
       {
         int Interval = 1;
         IUnit::CEventRecorderArgs Args;
@@ -471,8 +508,56 @@ void InstallVarsAndCmds(CController& c, CHost& host)
           Interval = Args.Value->RecordIntervalSec;
           
 
-        return MakeTextEmitter(String(Interval));
+        return MakeTextEmitter(String(Interval * 1000));
       })
+
+    .SetVar("RECORD_INTERVAL_STR", [&host](auto p)
+      {
+        int Mins = 0, Secs = 1;
+        char Buf[32];
+        IUnit::CEventRecorderArgs Args;
+        host.QueryEventRecorder(Args);
+        if(Args.Value)
+          Secs = Args.Value->RecordIntervalSec;
+
+        Mins = Secs / 60;
+        Secs -= Mins * 60;
+
+        snprintf_P(Buf, sizeof(Buf), PSTR("%dm %ds"), Mins, Secs);
+
+        return MakeTextEmitter(Buf);
+      })
+
+    .SetVar("MAX_RECORD_ENTRIES", [&host](auto p)
+      {
+        int MacEntries = 1;
+        IUnit::CEventRecorderArgs Args;
+        host.QueryEventRecorder(Args);
+        if(Args.Value)
+          MacEntries = Args.Value->MaxEntries;
+
+
+        return MakeTextEmitter(String(MacEntries));
+      })
+
+    .SetVar("TOTAL_RECORD_TIME_STR", [&host](auto p)
+      {
+        int Secs = 1, Mins =0, Hours = 0;
+        char Buf[32];
+        IUnit::CEventRecorderArgs Args;
+        host.QueryEventRecorder(Args);
+        if(Args.Value)
+          Secs = Args.Value->MaxEntries * Args.Value->RecordIntervalSec;
+
+        Hours = Secs / 3600;
+        Secs -= Hours * 3600;
+        Mins = Secs / 60;
+
+        snprintf_P(Buf, sizeof(Buf), PSTR("%dh %dm"), Hours, Mins);
+
+        return MakeTextEmitter(Buf);
+      })
+
     ;
 }
 #pragma endregion

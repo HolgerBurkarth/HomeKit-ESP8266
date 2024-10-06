@@ -261,7 +261,6 @@ struct CEventRecorder
   size_t MaxEntries{ 288 }; // 24h by 5min steps | sizeof(CEvent) * 288 = 2304 bytes
   int RecordIntervalSec{ 60 }; // 1 minute
 
-
   #pragma endregion
 
   #pragma region clear
