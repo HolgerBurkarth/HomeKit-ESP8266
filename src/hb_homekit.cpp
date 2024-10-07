@@ -3,7 +3,7 @@
 $CRT 10 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.cpp<< 04 Okt 2024  07:36:08 - (c) proDAD
+$DAT >>hb_homekit.cpp<< 07 Okt 2024  14:08:06 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -1372,6 +1372,9 @@ void CController::Setup()
 
   WebServer.addHook([this](const String& method, const String& url, WiFiClient* client, ESP8266WebServer::ContentTypeFunction contentType)
     {
+      homekit_touch_http_request();
+      //Serial.printf("Hook  Method: %s  URL: %s  From: %s\n", method.c_str(), url.c_str(), client->remoteIP().toString().c_str());
+
       #if 0
       Serial.printf("Hook  Method: %s  URL: %s  From: %s\n"
         , method.c_str(), url.c_str(), client->remoteIP().toString().c_str());
@@ -2430,6 +2433,32 @@ void CHomeKit::Loop()
 
   const uint32_t CurTick = millis();
   mLEDTimer.OnTick(CurTick);
+
+  /* ESP can save energy during delay().
+  * This also seems to be important in
+  * connection with WiFi.setSleepMode(WIFI_LIGHT_SLEEP).
+  */
+  {
+    auto Cur = homekit_http_request_count();
+    if(mLastHtmlRequestCount != Cur)
+    {
+      mLastHtmlRequestCount = Cur;
+      mLastHtmlRequestMS = CurTick;
+    }
+
+    /* Min. Allow 10 seconds to respond to additional
+    * high responding HTML requests. 
+    */
+    else if(CurTick - mLastHtmlRequestMS >= 1000 * 10)
+    {
+      uint32_t Interval = std::min( Controller.Ticker.GetShortInterval(), Controller.OneShotTicker.GetShortInterval());
+      Interval /= 2; // Nyquist–Shannon sampling theorem
+      Interval = std::min<uint32_t>(500, Interval); // not longer than 500ms
+      Interval = std::max<uint32_t>(25, Interval);  // not shorter than 25ms
+      delay(Interval); // save energy
+      //Serial.printf("CHomeKit::Loop:  Delay %d ms\n", Interval);
+    }
+  }
 
   #if 0
   if(IsPaired() && system_get_cpu_freq() == SYS_CPU_160MHZ)

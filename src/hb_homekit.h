@@ -3,7 +3,7 @@
 $CRT 09 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.h<< 05 Okt 2024  11:00:23 - (c) proDAD
+$DAT >>hb_homekit.h<< 07 Okt 2024  14:35:13 - (c) proDAD
 
 using namespace HBHomeKit;
 *******************************************************************/
@@ -969,6 +969,7 @@ struct CTicker
 
   #pragma endregion
 
+
   //END Methods
   #pragma endregion
 
@@ -986,7 +987,10 @@ template<size_t Slots, bool ContinuousEvents = true, typename Locker = decltype(
 class CTickerSlots
 {
   #pragma region Fields
+  static constexpr uint32_t InvalideShortInterval{ std::numeric_limits<uint32_t>::max() };
+
   std::array<CTicker, Slots> mSlots;
+  mutable uint32_t mShortInterval{ InvalideShortInterval };
 
   #pragma endregion
 
@@ -1015,6 +1019,7 @@ public:
     if(slot.Value() >= Slots) return {};
     Locker();
     mSlots[slot.Value()] = CTicker(interval, std::move(func));
+    Touch();
     return slot;
   }
 
@@ -1023,6 +1028,7 @@ public:
     if(slot.Value() >= Slots) return {};
     Locker();
     mSlots[slot.Value()] = CTicker(interval, std::move(func));
+    Touch();
     return slot;
   }
 
@@ -1034,6 +1040,7 @@ public:
     {
       if(!Slot)
       {
+        Touch();
         Slot = CTicker(interval, std::move(func));
         return ticker_slot::New(i);
       }
@@ -1050,6 +1057,7 @@ public:
     {
       if(!Slot)
       {
+        Touch();
         Slot = CTicker(interval, std::move(func));
         return ticker_slot::New(i);
       }
@@ -1070,6 +1078,7 @@ public:
     if(slot.Value() >= Slots) return;
     Locker();
     mSlots[slot.Value()] = CTicker{};
+    Touch();
   }
 
   #pragma endregion
@@ -1101,11 +1110,40 @@ public:
 
   #pragma endregion
 
+  #pragma region GetShortInterval
+  uint32_t GetShortInterval() const
+  {
+    if(mShortInterval == InvalideShortInterval)
+    {
+      uint32_t ShortInterval = std::numeric_limits<uint32_t>::max();
+      for(const auto& Slot : mSlots)
+      {
+        if(Slot)
+          ShortInterval = std::min(ShortInterval, Slot.mInterval);
+      }
+      mShortInterval = ShortInterval;
+    }
+    return mShortInterval;
+    
+  }
+
+  #pragma endregion
+
+  #pragma region Touch
+private:
+  void Touch()
+  {
+    mShortInterval = InvalideShortInterval; // needs recalculation
+  }
+  #pragma endregion
+
 
   //END Methods
   #pragma endregion
 
 };
+
+
 
 /* A collection of timers that are interrupt safe and can be used in an interrupt context.
 * @note The timer functions are called continuously.
@@ -3304,6 +3342,8 @@ class CHomeKit
   const homekit_server_config_t*  mConfig{};
 
   CTicker     mLEDTimer;
+  uint32_t    mLastHtmlRequestCount{};
+  uint32_t    mLastHtmlRequestMS{};
   bool        mHomeKitServerStarted{};
 
   static bool mIsPaired; // True if HomeKit is paired (with Apple)
@@ -3956,6 +3996,7 @@ CTextEmitter UIUtils_JavaScript();
 * @member field DataColor
 * @member field DataLineWidth
 * @member field AxisNumberColor
+* @member field XDataToString = function(x)
 *
 * @member function Clear()
 * 
@@ -3978,11 +4019,15 @@ CTextEmitter UIUtils_JavaScript();
 * 
 * @member function ResetAxisColors()
 * @member function SetAxisColors(noniusColor, axisNumberColor)
+* @member function SetAxisColors(colorName)
 * @member function ResetGridColor()
 * @member function SetGridColor(gridColor)
+* @member function SetGridColor(colorName)
 * @member function DrawHrzGrid()
 * @member function DrawVrtGrid()
 * @member function DrawHrzAxisNumbers()
+* @member function ResetDataColor()
+* @member function SetDataColor(dataColor)
 * 
 *   etage: [-1, 0, 1] (default = 1)
 *    - (-1) : inner grid, no numbers

@@ -613,8 +613,23 @@ Info	2024-10-04 06:07:29	Closing client connection
 #pragma endregion
 
 #pragma region LockWebServer
+static uint32_t gbHttpReqCount = 0;
+
+void homekit_touch_http_request()
+{
+  ++gbHttpReqCount;
+}
+
+uint32_t homekit_http_request_count()
+{
+  return gbHttpReqCount;
+}
+
+
 static void LockWebServer(bool enterLock)
 {
+  homekit_touch_http_request();
+
   if(enterLock)
   {
     VERBOSE("Enter LockWebServer\n");

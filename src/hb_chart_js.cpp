@@ -3,7 +3,7 @@
 $CRT 27 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_chart_js.cpp<< 05 Okt 2024  09:51:08 - (c) proDAD
+$DAT >>hb_chart_js.cpp<< 07 Okt 2024  11:30:21 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -66,6 +66,7 @@ CTextEmitter Chart_JavaScript()
       constructor(canvas)
       {
         this.canvas = canvas;
+        this.DataPoints = [];
         this.LeftMargin = 25;
         this.RightMargin = 12;
         this.TopMargin = 12;
@@ -79,9 +80,10 @@ CTextEmitter Chart_JavaScript()
         this.BottomTop = false;
         this.SwapXYDataValues = false;
         this.DataColor = "#ea0";
-        this.DataLineWidth = 2;
+        this.DataLineWidth = 3;
         this.NoniusFont = "12px sans-serif";
         this.EventFont = "15px sans-serif";
+        this.XDataToString = null;
 
         this.ctx = this.canvas.getContext("2d");
         this.ctx.font = this.NoniusFont;
@@ -176,22 +178,22 @@ CTextEmitter Chart_JavaScript()
         if(!VrtLeft && !VrtRight)
           VrtLeft = true;
 
-        this.LeftMargin   = 8;
-        this.RightMargin  = 8;
-        this.TopMargin    = 8;
+        this.LeftMargin = 8;
+        this.RightMargin = 8;
+        this.TopMargin = 8;
         this.BottomMargin = 8;
 
-        if(HrzLabel)   this.BottomMargin += 18;
+        if(HrzLabel) this.BottomMargin += 18;
         if(HrzNumbers) this.BottomMargin += 18;
 
         if(VrtLeft)
         {
-          if(VrtLabel)   this.LeftMargin += 18;
+          if(VrtLabel) this.LeftMargin += 18;
           if(VrtNumbers) this.LeftMargin += 18;
         }
         if(VrtRight)
         {
-          if(VrtLabel)   this.RightMargin += 18;
+          if(VrtLabel) this.RightMargin += 18;
           if(VrtNumbers) this.RightMargin += 18;
         }
       }
@@ -203,9 +205,23 @@ CTextEmitter Chart_JavaScript()
       }
       SetAxisColors(noniusColor, axisNumberColor)
       {
+        if(typeof noniusColor === "string" && axisNumberColor == undefined)
+        {
+          if(noniusColor == 'cyan')
+          {
+            noniusColor = '#0aa';
+            axisNumberColor = '#0ff';
+          }
+          else if(noniusColor == 'magenta')
+          {
+            noniusColor = '#f4f';
+            axisNumberColor = '#f8f';
+          }
+        }
         this.NoniusColor = noniusColor;
         this.AxisNumberColor = axisNumberColor;
       }
+
 
       ResetGridColor()
       {
@@ -213,7 +229,31 @@ CTextEmitter Chart_JavaScript()
       }
       SetGridColor(gridColor)
       {
+        if(typeof gridColor === "string")
+        {
+          if(gridColor == 'cyan')
+            gridColor = '#066';
+          else if(gridColor == 'magenta')
+            gridColor = '#818';
+        }
         this.GridColor = gridColor;
+      }
+
+
+      ResetDataColor()
+      {
+        this.DataColor = "#ea0";
+      }
+      SetDataColor(dataColor)
+      {
+        if(typeof dataColor === "string")
+        {
+          if(dataColor == 'cyan')
+            dataColor = '#0ff';
+          else if(dataColor == 'magenta')
+            dataColor = '#f4f';
+        }
+        this.DataColor = dataColor;
       }
 
 
@@ -222,14 +262,20 @@ CTextEmitter Chart_JavaScript()
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       }
 
+      HasXYData()
+      {
+        return this.DataPoints && this.DataPoints.length > 0 && this.DataPoints[0].length == 2;
+      }
+
       DrawHrzGrid()
       {
         this.ctx.strokeStyle = this.GridColor;
         this.ctx.lineWidth = 1;
+        var HasXYData = this.HasXYData();
 
         for(var i = this.HrzAxisStart; i <= this.HrzAxisEnd; i += this.HrzAxisStep)
         {
-          var x = this.Data2CanvasX(i);
+          var x = this.Data2CanvasX( HasXYData ? i : this.CanvasXDataAt(i) );
           this.ctx.beginPath();
           this.ctx.moveTo(x, this.TopMargin);
           this.ctx.lineTo(x, this.canvas.height - this.BottomMargin);
@@ -265,6 +311,11 @@ CTextEmitter Chart_JavaScript()
           return this.canvas.height - this.BottomMargin - (y - this.VrtAxisStart) * (this.canvas.height - (this.BottomMargin + this.TopMargin)) / (this.VrtAxisEnd - this.VrtAxisStart);
       }
 
+      CanvasXDataAt(dataIndex)
+      {
+        return dataIndex;
+      }
+
       CanvasPointAt(dataIndex)
       {
         var x, y;
@@ -286,6 +337,8 @@ CTextEmitter Chart_JavaScript()
         }
         else
         {
+          dataIndex = this.CanvasXDataAt(dataIndex);
+
           if(this.SwapXYDataValues)
           {
             x = this.Data2CanvasX(Entry);
@@ -376,11 +429,12 @@ CTextEmitter Chart_JavaScript()
         this.ctx.textAlign = "center";
         this.ctx.font = this.NoniusFont;
         var y = this.Data2CanvasY(this.VrtAxisStart);
+        var HasXYData= this.HasXYData();
 
         this.ctx.strokeStyle = this.NoniusColor;
         for(var i = this.HrzAxisStart; i <= this.HrzAxisEnd; i += this.HrzAxisStep)
         {
-          var x = this.Data2CanvasX(i);
+          var x = this.Data2CanvasX(HasXYData ? i : this.CanvasXDataAt(i));
           this.ctx.beginPath();
           this.ctx.moveTo(x, y - 5);
           this.ctx.lineTo(x, y + 5);
@@ -397,8 +451,10 @@ CTextEmitter Chart_JavaScript()
 
         for(var i = this.HrzAxisStart; i <= this.HrzAxisEnd; i += this.HrzAxisStep)
         {
-          var x = this.Data2CanvasX(i);
-          this.ctx.fillText(i, x, y + 14);
+          var vx = HasXYData ? i : this.CanvasXDataAt(i);
+          var x = this.Data2CanvasX(vx);
+          var Txt = this.XDataToString ? this.XDataToString(vx) : vx.toFixed(0);
+          this.ctx.fillText(Txt, x, y + 14);
         }
       }
 
@@ -431,7 +487,7 @@ CTextEmitter Chart_JavaScript()
         for(var i = this.VrtAxisStart; i <= this.VrtAxisEnd; i += this.VrtAxisStep)
         {
           var y = this.Data2CanvasY(i);
-          this.ctx.fillText(i, x + (leftSide ? -6:8), y + 4);
+          this.ctx.fillText(i, x + (leftSide ? -6 : 8), y + 4);
         }
       }
 
@@ -448,10 +504,10 @@ CTextEmitter Chart_JavaScript()
         if(leftSide)
           x = x - 4 - 18 * (etage);
         else
-          x = x - 4 + 18 * (etage+1)
+          x = x - 4 + 18 * (etage + 1)
 
         this.ctx.save();
-        this.ctx.translate(x, this.TopMargin + tw +4);
+        this.ctx.translate(x, this.TopMargin + tw + 4);
         this.ctx.rotate(-Math.PI / 2);
         this.ctx.fillText(labelText, 0, 0);
         this.ctx.restore();
@@ -464,7 +520,7 @@ CTextEmitter Chart_JavaScript()
         this.ctx.fillStyle = this.NoniusColor;
         var x = this.Data2CanvasX(this.HrzAxisEnd);
         var y = this.Data2CanvasY(this.VrtAxisStart);
-        this.ctx.fillText(labelText, x - 4, y + (etage+1) * 16 - 4);
+        this.ctx.fillText(labelText, x - 4, y + (etage + 1) * 16 - 4);
       }
 
       DrawBoundaryBox(minValue, maxValue, fillColor, opacity)

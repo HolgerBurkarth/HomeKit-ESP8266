@@ -121,6 +121,7 @@ struct CFixPoint
 
 using fix16_16_t = CFixPoint<int32_t, 16>;
 using fix10_6_t = CFixPoint<int16_t, 6>;
+using fix8_8_t = CFixPoint<int16_t, 8>;
 
 #pragma endregion
 
@@ -171,12 +172,12 @@ struct CEventRecorder
   struct CEvent // 8 bytes
   {
     #pragma region Fields
-    minute16_t Minute{};
-    fix10_6_t Temperature{};
-    fix10_6_t Humidity{};
+    minute16_t  Minute{};
+    fix8_8_t    Temperature{};
+    fix10_6_t   Humidity{};
 
     bool HasTemperature : 1;
-    bool HasHumidity : 1;
+    bool HasHumidity    : 1;
 
     #pragma endregion
 
@@ -295,9 +296,9 @@ struct CEventRecorder
   */
   CTextEmitter EntriesEmitter() const
   {
-    return [Entries = &mEntries](Stream& out)
+    return [&Entries = mEntries](Stream& out)
       {
-        for(const auto& e : *Entries)
+        for(const auto& e : Entries)
         {
           //Serial.println(e.ToString());
           out << e.ToString() << F("\n");
@@ -858,6 +859,15 @@ IUnit_Ptr MakeContinuousReadSensorUnit(uint32_t intervalMS, std::function<CSenso
 */
 IUnit_Ptr MakeOnSensorChangedUnit(std::function<void(const CSensorInfo&)> func);
 
+#pragma endregion
+
+#pragma region MakeContinuousEventRecorderUnit
+/*
+* @brief The unit records the door position/state and motor state in
+* a continuous event recorder.
+*/
+IUnit_Ptr MakeContinuousEventRecorderUnit(int intervalSec);
+#
 #pragma endregion
 
 

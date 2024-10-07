@@ -5,7 +5,7 @@
 $CRT 13 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>arduino_homekit_server.h<< 13 Sep 2024  15:03:56 - (c) proDAD
+$DAT >>arduino_homekit_server.h<< 07 Okt 2024  14:06:40 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Includes
@@ -294,6 +294,9 @@ void arduino_homekit_loop();
 homekit_server_t* arduino_homekit_get_running_server();
 int arduino_homekit_connected_clients_count();
 void homekit_update_config_number();
+
+void homekit_touch_http_request();
+uint32_t homekit_http_request_count();
 
 #pragma region Epilog
 #ifdef __cplusplus

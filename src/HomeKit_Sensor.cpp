@@ -3,7 +3,7 @@
 $CRT 05 Okt 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>HomeKit_Sensor.cpp<< 06 Okt 2024  07:12:02 - (c) proDAD
+$DAT >>HomeKit_Sensor.cpp<< 07 Okt 2024  14:35:42 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -102,6 +102,13 @@ public:
         Args.Value = mGetter();
         Super->WriteSensorInfo(Args);
       });
+
+    if(mInterval > 1000)
+    {
+      CSensorInfoArgs Args;
+      Args.Value = mGetter();
+      Super->WriteSensorInfo(Args);
+    }
   }
 
   #pragma endregion
@@ -159,6 +166,83 @@ IUnit_Ptr MakeOnSensorChangedUnit(std::function<void(const CSensorInfo&)> func)
 //END COnSensorChangedUnit
 #pragma endregion
 
+#pragma region CContinuousEventRecorderUnit - Implementation
+struct CContinuousEventRecorderUnit : CUnitBase
+{
+  #pragma region Fields
+  CEventRecorder Record;
+  CSensorInfo mLastInfo;
+  CSuperInvoke mSuperInvoke{};
+  time_t mLastTime{};
+
+  #pragma endregion
+
+  #pragma region Construction
+  CContinuousEventRecorderUnit(int intervalSec)
+  {
+    Record.RecordIntervalSec = std::max(1, intervalSec);
+  }
+  #pragma endregion
+
+  #pragma region Start
+  virtual void Start(CVoidArgs&) override
+  {
+    //Serial.printf("Size of CEvent = %d bytes\n", sizeof(CEvent));
+    Record.reserve(288);
+  }
+
+  #pragma endregion
+
+  #pragma region WriteMotorInfo
+  void WriteSensorInfo(CSensorInfoArgs& args) override
+  {
+    if(mSuperInvoke(Super, &IUnit::WriteSensorInfo, args))
+    {
+      if(mLastInfo.Assign(args.Value))
+      {
+        time_t Cur; time(&Cur);
+        if(difftime(Cur, mLastTime) >= Record.RecordIntervalSec)
+        {
+          Record.push_back(mLastInfo);
+          mLastTime = Cur;
+
+          struct tm timeinfo;
+          if(Safe_GetLocalTime(&timeinfo))
+          {
+            char TimeStamp[32];
+            strftime(TimeStamp, sizeof(TimeStamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
+
+            VERBOSE("%s Record sensor readings: T=%0.1f H=%0.1f"
+              , TimeStamp
+              , mLastInfo.Temperature.value_or(0.0f)
+              , mLastInfo.Humidity.value_or(0.0f)
+            );
+          }
+        }
+      }
+    }
+  }
+  #pragma endregion
+
+  #pragma region QueryEventRecorder
+  void QueryEventRecorder(CEventRecorderArgs& args) override
+  {
+    args.Value = MakeStaticPtr(Record);
+    args.Handled = true;
+  }
+
+  #pragma endregion
+
+};
+
+IUnit_Ptr MakeContinuousEventRecorderUnit(int intervalSec)
+{
+  return std::make_shared<CContinuousEventRecorderUnit>(intervalSec);
+}
+
+//END
+#pragma endregion
+
 
 //END Unit - Objects
 #pragma endregion
@@ -172,16 +256,34 @@ CTextEmitter EventChart_JavaScript()
 
 var EventChartCanvasHD;
 var EventChart;
+var EventTime = []; // array of longs
 var Temperates = []; // array of floats
 var Humidities = []; // array of floats
 var MaxEntries = 288;
+var IntervalMS = 1000;
+var MaxTempIndex = -1;
+var MinTempIndex = -1;
+var MaxHumIndex = -1;
+var MinHumIndex = -1;
 
 
 function MakeEventChart()
 {
   EventChartCanvasHD = document.getElementById('Canvas');
   EventChart = new CChart(EventChartCanvasHD);
-  EventChart.AutoMargins('', 'numbers left right');
+  EventChart.AutoMargins('numbers', 'numbers left right');
+  EventChart.XDataToString = function(x) 
+    {
+      if(x >= 0 && x < EventTime.length)
+      {
+        var d = new Date(EventTime[x]);
+        return d.toLocaleTimeString().substring(0, 5);
+      }
+      return '';
+    };
+
+  /* Redraw Canvas if needed */
+  EventChartCanvasHD.addEventListener('resize', ResizeEventChart);
 }
 
 function ResizeEventChart()
@@ -200,15 +302,67 @@ function UpdateEventChart()
   var MinHum  = 0;
   var MaxHum  = 0;
 
-  if(Temperates.length > 1)
+  MaxTempIndex = -1;
+  MinTempIndex = -1;
+  MaxHumIndex = -1;
+  MinHumIndex = -1;
+
+
+  if(Temperates.length > 0)
   {
-    MinTemp = Math.min(...Temperates);
-    MaxTemp = Math.max(...Temperates);
+    if(Temperates.length > 1)
+    {
+      MaxTemp = Temperates[0];
+      MinTemp = Temperates[0];
+      MaxTempIndex = 0;
+      MinTempIndex = 0;
+      for(var i = 1; i < Temperates.length; ++i)
+      {
+        if(Temperates[i] > MaxTemp)
+        {
+          MaxTemp = Temperates[i];
+          MaxTempIndex = i;
+        }
+        if(Temperates[i] < MinTemp)
+        {
+          MinTemp = Temperates[i];
+          MinTempIndex = i;
+        }
+      }
+    }
+    else
+    {
+      MinTemp = Math.min(...Temperates);
+      MaxTemp = Math.max(...Temperates);
+    }
   }
-  if(Humidities.length > 1)
+  if(Humidities.length > 0)
   {
-    MinHum = Math.min(...Humidities);
-    MaxHum = Math.max(...Humidities);
+    if(Humidities.length > 1)
+    {
+      MaxHum = Humidities[0];
+      MinHum = Humidities[0];
+      MaxHumIndex = 0;
+      MinHumIndex = 0;
+      for(var i = 1; i < Humidities.length; ++i)
+      {
+        if(Humidities[i] > MaxHum)
+        {
+          MaxHum = Humidities[i];
+          MaxHumIndex = i;
+        }
+        if(Humidities[i] < MinHum)
+        {
+          MinHum = Humidities[i];
+          MinHumIndex = i;
+        }
+      }
+    }
+    else
+    {
+      MinHum = Math.min(...Humidities);
+      MaxHum = Math.max(...Humidities);
+    }
   }
 
 
@@ -226,13 +380,13 @@ function UpdateEventChart()
   EventChart.ResetGridColor();
   EventChart.ResetAxisColors();
 
-  EventChart.SetHrzAxis(0,  MaxEntries,   10);
+  EventChart.SetHrzAxis(0,  MaxEntries,   36);
   EventChart.DrawHrzGrid();
-  EventChart.DrawHrzAxisLabel('Time', -1);
+  EventChart.DrawHrzAxisNumbers();
 
-  if(Temperates.length > 1)
+  if(Temperates.length > 0)
   {
-    EventChart.SetAxisColors('#f4f', '#f8f');
+    EventChart.SetAxisColors('magenta');
     if(MaxTemp-MinTemp < 3)
     {
       EventChart.SetGridColor('#606');
@@ -240,63 +394,64 @@ function UpdateEventChart()
       EventChart.DrawVrtGrid();
     }
 
-    EventChart.SetGridColor('#818');
+    EventChart.SetGridColor('magenta');
     EventChart.SetVrtAxis(MinTemp, MaxTemp, 1);
+    EventChart.DrawBoundaryBox(Temperates[MinTempIndex], Temperates[MaxTempIndex], '#f4f', 0.15);
     EventChart.DrawVrtGrid();
     EventChart.DrawVrtAxisNumbers(true);
     EventChart.DrawVrtAxisLabel("Gard Celsius", true, -1);
   }
 
-  if(Humidities.length > 1)
+  if(Humidities.length > 0)
   {
+    EventChart.SetAxisColors('cyan');
     EventChart.SetVrtAxis(MinHum, MaxHum, 2);
-    EventChart.SetAxisColors('#0aa', '#0ff');
-    EventChart.SetGridColor('#066');
+    EventChart.SetGridColor('cyan');
+    EventChart.DrawBoundaryBox(Humidities[MinHumIndex], Humidities[MaxHumIndex], 'cyan', 0.15);
     EventChart.DrawVrtGrid();
     EventChart.DrawVrtAxisNumbers(false);
     EventChart.DrawVrtAxisLabel("Humidities", false, -1);
   }
 
 
-  if(Temperates.length > 1)
+  if(Temperates.length > 0)
   {
+    EventChart.SetVrtAxis(MinTemp, MaxTemp, 1);
     EventChart.SetDataPoints(Temperates);
-    EventChart.DataColor = '#f4f';
-    EventChart.DataLineWidth = 3;
+    EventChart.SetDataColor('magenta');
     EventChart.DrawCurve();
   }
 
-  if(Humidities.length > 1)
+  if(Humidities.length > 0)
   {
+    EventChart.SetVrtAxis(MinHum, MaxHum, 2);
     EventChart.SetDataPoints(Humidities);
-    EventChart.DataColor = '#0ff';
-    EventChart.DataLineWidth = 3;
+    EventChart.SetDataColor('cyan');
     EventChart.DrawCurve();
   }
 
+  if(MinTempIndex >= 0)
+  {
+    SetElementInnerHTML('MinTemp', FormatTemperatureAt(MinTempIndex));
+    SetElementInnerHTML('MaxTemp', FormatTemperatureAt(MaxTempIndex));
+  }
+
+  if(MaxHumIndex >= 0)
+  {
+    SetElementInnerHTML('MaxHum', FormatHumidityAt(MaxHumIndex));
+    SetElementInnerHTML('MinHum', FormatHumidityAt(MinHumIndex));
+  }
 }
 
-function AddTemperature(value)
+function FormatTemperatureAt(index)
 {
-  var v = parseFloat(value);
-  if (isNaN(v))
-    return;
-
-  if(Temperates.length > MaxEntries)
-    Temperates.shift();
-  Temperates.push(v);
-  UpdateEventChart();
+  return parseFloat(Temperates[index]).toFixed(2) + " \u00B0C <span class='unit'>" 
+    + EventChart.XDataToString(index) + "</span>";
 }
-function AddHumidity(value)
+function FormatHumidityAt(index)
 {
-  var v = parseFloat(value);
-  if (isNaN(v))
-    return;
-
-  if(Humidities.length > MaxEntries)
-    Humidities.shift();
-  Humidities.push(v);
-  //UpdateEventChart();
+  return parseFloat(Humidities[index]).toFixed(2) + " % <span class='unit'>" 
+    + EventChart.XDataToString(index) + "</span>";
 }
 
 
@@ -305,7 +460,13 @@ responseText: "Time;Temp:0.0;Hum:0.0;\n" ...
 */
 function ParseEntries(responseText)
 {
+  EventTime = [];
+  Humidities = [];
+  Temperates = [];
+
   var lines = responseText.split('\n');
+  var Now = new Date();
+
   for(var i = 0; i < lines.length; ++i)
   {
     var line = lines[i];
@@ -316,13 +477,15 @@ function ParseEntries(responseText)
     if(parts.length < 3)
       continue;
 
-    var time = parts[0];
+    var time = new Date(parts[0]);
     var temp = parts[1].split(':')[1];
     var hum  = parts[2].split(':')[1];
 
-    AddHumidity(hum);
-    AddTemperature(temp);
+    EventTime.push(time.getTime() - Now.getTimezoneOffset() * 60000);
+    Humidities.push(parseFloat(hum));
+    Temperates.push(parseFloat(temp));
   }
+  UpdateEventChart();
 }
 
 function StartMaxEntries(value)
@@ -334,7 +497,7 @@ function StartMaxEntries(value)
 
 function StartPeriodicalUpdate(value)
 {
-  var IntervalMS = parseFloat(value);
+  IntervalMS = parseFloat(value);
   if(isNaN(IntervalMS) || IntervalMS < 100)
     IntervalMS = 1000;
 
@@ -342,16 +505,14 @@ function StartPeriodicalUpdate(value)
   (
     function()
     {
-      ForVar('HUMIDITY',    responseText => AddHumidity(responseText) );
-      ForVar('TEMPERATURE', responseText => AddTemperature(responseText) );
-
+      ForVar('ENTRIES',  responseText => ParseEntries(responseText) );
     },
     IntervalMS
   );
 }
 
 
-window.addEventListener('resize', ResizeEventChart);
+//window.addEventListener('resize', ResizeEventChart);
 
 window.addEventListener('load', (event) =>
 {
@@ -366,8 +527,6 @@ window.addEventListener('load', (event) =>
       function()
       {
         ForVar('ENTRIES',  responseText => ParseEntries(responseText) );
-        ForVar('HUMIDITY',    responseText => AddHumidity(responseText) );
-        ForVar('TEMPERATURE', responseText => AddTemperature(responseText) );
         ForVar('MAX_RECORD_ENTRIES', responseText => StartMaxEntries(responseText) );
         ForVar('RECORD_INTERVAL', responseText => StartPeriodicalUpdate(responseText) );
 
@@ -421,7 +580,7 @@ window.addEventListener('load', (event) =>
       { 
         Update(); 
       },
-      1000
+      5000
     );
 });
 
@@ -436,7 +595,6 @@ CTextEmitter MainPage_HtmlBody()
 <div>
   <canvas id="Canvas" width="360" height="200"></canvas>
 </div>
-<br/>
 <table class='entrytab'>
 <caption>Measurements</caption>
   <tr>
@@ -447,8 +605,28 @@ CTextEmitter MainPage_HtmlBody()
     <th>Humidity</th>
     <td><div id="CurHum"></div></td>
   </tr>
+
+  <tr><td><span class = 'unit'>&nbsp;</span></td></tr>
+
+  <tr>
+    <th>Max. Temperature</th>
+    <td><div id="MaxTemp"></div></td>
+  </tr>
+  <tr>
+    <th>Min. Temperature</th>
+    <td><div id="MinTemp"></div></td>
+  </tr>
+
+  <tr>
+    <th>Max. Humidity</th>
+    <td><div id="MaxHum"></div></td>
+  </tr>
+  <tr>
+    <th>Min. Humidity</th>
+    <td><div id="MinHum"></div></td>
+  </tr>
+
 </table>
-<br/>
 <br/>
 <table class='entrytab'>
 <caption>Settings</caption>
@@ -506,8 +684,6 @@ void InstallVarsAndCmds(CController& c, CHost& host)
         host.QueryEventRecorder(Args);
         if(Args.Value)
           Interval = Args.Value->RecordIntervalSec;
-          
-
         return MakeTextEmitter(String(Interval * 1000));
       })
 
@@ -524,7 +700,6 @@ void InstallVarsAndCmds(CController& c, CHost& host)
         Secs -= Mins * 60;
 
         snprintf_P(Buf, sizeof(Buf), PSTR("%dm %ds"), Mins, Secs);
-
         return MakeTextEmitter(Buf);
       })
 
@@ -535,8 +710,6 @@ void InstallVarsAndCmds(CController& c, CHost& host)
         host.QueryEventRecorder(Args);
         if(Args.Value)
           MacEntries = Args.Value->MaxEntries;
-
-
         return MakeTextEmitter(String(MacEntries));
       })
 
@@ -554,7 +727,6 @@ void InstallVarsAndCmds(CController& c, CHost& host)
         Mins = Secs / 60;
 
         snprintf_P(Buf, sizeof(Buf), PSTR("%dh %dm"), Hours, Mins);
-
         return MakeTextEmitter(Buf);
       })
 
