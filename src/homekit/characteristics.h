@@ -17,6 +17,21 @@ extern "C" {
 #endif
 
 #pragma endregion
+#pragma region HAP Info (Apple)
+/*
+  * You are recommended to read the Apple's HAP doc before using this library.
+  * https://developer.apple.com/apple-home/
+  * https://developer.apple.com/documentation/homekit
+  *
+  * HAP
+  * https://github.com/apple/HomeKitADK/blob/master/HAP/HAPCharacteristicTypes.h
+  * https://github.com/apple/HomeKitADK/blob/master/HAP/HAPServiceTypes.h
+  * https://forum.iobroker.net/assets/uploads/files/1634848447889-apple-spezifikation-homekit.pdf
+  *
+  * https://github.com/brutella/hap/tree/master/service
+  *
+  */
+#pragma endregion
 
 #pragma region Basic Defines
 #define HOMEKIT_SHORT_APPLE_UUIDS
@@ -937,6 +952,12 @@ Optional Characteristics:
 #pragma endregion
 
 #pragma region HOMEKIT_DECLARE_CHARACTERISTIC_TEMPERATURE_DISPLAY_UNITS
+enum HOMEKIT_TEMPERATURE_DISPLAY_UNIT
+{
+  HOMEKIT_TEMPERATURE_DISPLAY_UNIT_CELSIUS    = 0,
+  HOMEKIT_TEMPERATURE_DISPLAY_UNIT_FAHRENHEIT = 1,
+};
+
 #define HOMEKIT_CHARACTERISTIC_TEMPERATURE_DISPLAY_UNITS HOMEKIT_APPLE_UUID2("36")
 #define HOMEKIT_DECLARE_CHARACTERISTIC_TEMPERATURE_DISPLAY_UNITS(_value, ...) \
     .type = HOMEKIT_CHARACTERISTIC_TEMPERATURE_DISPLAY_UNITS, \
@@ -1107,9 +1128,12 @@ enum HOMEKIT_TARGET_DOOR_STATE
 #pragma endregion
 
 #pragma region HOMEKIT_DECLARE_CHARACTERISTIC_CURRENT_HEATING_COOLING_STATE
-#define HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF 0
-#define HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT 1
-#define HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL 2
+enum HOMEKIT_CURRENT_HEATING_COOLING_STATE
+{
+  HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF  = 0, // The Heater/Cooler is off
+  HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT = 1, // The Heater is currently on
+  HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL = 2, // The Cooler is currently on
+};
 
 // Current Heating Cooling State
 #define HOMEKIT_CHARACTERISTIC_CURRENT_HEATING_COOLING_STATE HOMEKIT_APPLE_UUID1("F")
@@ -1392,10 +1416,13 @@ enum HOMEKIT_TARGET_DOOR_STATE
 #pragma endregion
 
 #pragma region HOMEKIT_DECLARE_CHARACTERISTIC_TARGET_HEATING_COOLING_STATE
-#define HOMEKIT_TARGET_HEATING_COOLING_STATE_OFF 0
-#define HOMEKIT_TARGET_HEATING_COOLING_STATE_HEAT 1
-#define HOMEKIT_TARGET_HEATING_COOLING_STATE_COOL 2
-#define HOMEKIT_TARGET_HEATING_COOLING_STATE_AUTO 3
+enum HOMEKIT_TARGET_HEATING_COOLING_STATE
+{
+  HOMEKIT_TARGET_HEATING_COOLING_STATE_OFF  = 0,
+  HOMEKIT_TARGET_HEATING_COOLING_STATE_HEAT = 1, // If the current temperature is below the target temperature then turn on heating
+  HOMEKIT_TARGET_HEATING_COOLING_STATE_COOL = 2, // If the current temperature is above the target temperature then turn on cooling
+  HOMEKIT_TARGET_HEATING_COOLING_STATE_AUTO = 3, // Turn on heating or cooling to maintain temperature within the heating and cooling threshold of the target temperature
+};
 
 // Target Heating Cooling State
 #define HOMEKIT_CHARACTERISTIC_TARGET_HEATING_COOLING_STATE HOMEKIT_APPLE_UUID2("33")

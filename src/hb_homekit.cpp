@@ -2498,7 +2498,9 @@ void CHomeKit::Loop()
   /* ESP can save energy during delay().
   * This also seems to be important in
   * connection with WiFi.setSleepMode(WIFI_LIGHT_SLEEP).
+  * @see DisableEnergySaving
   */
+  if(mEnergySavingEnabled)
   {
     auto Cur = homekit_http_request_count();
     if(mLastHtmlRequestCount != Cur)
@@ -2521,14 +2523,6 @@ void CHomeKit::Loop()
       //Serial.printf("CHomeKit::Loop:  Delay %d ms\n", Interval);
     }
   }
-
-  #if 0
-  if(IsPaired() && system_get_cpu_freq() == SYS_CPU_160MHZ)
-  {
-    system_update_cpu_freq(SYS_CPU_80MHZ);
-    VERBOSE("Update the CPU to run at 80MHz");
-  }
-  #endif
 }
 
 #pragma endregion

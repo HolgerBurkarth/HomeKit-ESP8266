@@ -548,6 +548,36 @@ template<> constexpr homekit_value_t static_value_cast<HOMEKIT_CURRENT_DOOR_STAT
   return static_value_cast(static_cast<uint8_t>(value));
 }
 
+/* HOMEKIT_TARGET_HEATING_COOLING_STATE <-> homekit_value_t */
+template<> constexpr HOMEKIT_TARGET_HEATING_COOLING_STATE static_value_cast<HOMEKIT_TARGET_HEATING_COOLING_STATE>(const homekit_value_t& value) noexcept
+{
+  return static_cast<HOMEKIT_TARGET_HEATING_COOLING_STATE>(static_value_cast<uint8_t>(value));
+}
+template<> constexpr homekit_value_t static_value_cast<HOMEKIT_TARGET_HEATING_COOLING_STATE>(HOMEKIT_TARGET_HEATING_COOLING_STATE value) noexcept
+{
+  return static_value_cast(static_cast<uint8_t>(value));
+}
+
+/* HOMEKIT_CURRENT_HEATING_COOLING_STATE <-> homekit_value_t */
+template<> constexpr HOMEKIT_CURRENT_HEATING_COOLING_STATE static_value_cast<HOMEKIT_CURRENT_HEATING_COOLING_STATE>(const homekit_value_t& value) noexcept
+{
+  return static_cast<HOMEKIT_CURRENT_HEATING_COOLING_STATE>(static_value_cast<uint8_t>(value));
+}
+template<> constexpr homekit_value_t static_value_cast<HOMEKIT_CURRENT_HEATING_COOLING_STATE>(HOMEKIT_CURRENT_HEATING_COOLING_STATE value) noexcept
+{
+  return static_value_cast(static_cast<uint8_t>(value));
+}
+
+/* HOMEKIT_TEMPERATURE_DISPLAY_UNIT <-> homekit_value_t */
+template<> constexpr HOMEKIT_TEMPERATURE_DISPLAY_UNIT static_value_cast<HOMEKIT_TEMPERATURE_DISPLAY_UNIT>(const homekit_value_t& value) noexcept
+{
+  return static_cast<HOMEKIT_TEMPERATURE_DISPLAY_UNIT>(static_value_cast<uint8_t>(value));
+}
+template<> constexpr homekit_value_t static_value_cast<HOMEKIT_TEMPERATURE_DISPLAY_UNIT>(HOMEKIT_TEMPERATURE_DISPLAY_UNIT value) noexcept
+{
+  return static_value_cast(static_cast<uint8_t>(value));
+}
+
 
 //END Implementation
 #pragma endregion
@@ -1390,7 +1420,10 @@ private:
 
     int i = 0;
     for(auto& c : characteristics)
-      Characteristics[i++] = c;
+    {
+      if(c)
+        Characteristics[i++] = c;
+    }
   }
 
 public:
@@ -1474,6 +1507,85 @@ public:
     CService{ service, { c0, c1, c2, c3, c4, c5 } }
   {}
   #pragma endregion
+
+  #pragma region CService<7>(...)
+  template<typename T = void, typename = std::enable_if_t<Characteristic_Count == 7, T>>
+  constexpr CService
+  (
+    const homekit_service_t& service,
+    const homekit_characteristic_t* c0,
+    const homekit_characteristic_t* c1,
+    const homekit_characteristic_t* c2,
+    const homekit_characteristic_t* c3,
+    const homekit_characteristic_t* c4,
+    const homekit_characteristic_t* c5,
+    const homekit_characteristic_t* c6
+  ) noexcept
+    :
+    CService{ service, { c0, c1, c2, c3, c4, c5, c6 } }
+  {}
+  #pragma endregion
+
+  #pragma region CService<8>(...)
+  template<typename T = void, typename = std::enable_if_t<Characteristic_Count == 8, T>>
+  constexpr CService
+  (
+    const homekit_service_t& service,
+    const homekit_characteristic_t* c0,
+    const homekit_characteristic_t* c1,
+    const homekit_characteristic_t* c2,
+    const homekit_characteristic_t* c3,
+    const homekit_characteristic_t* c4,
+    const homekit_characteristic_t* c5,
+    const homekit_characteristic_t* c6,
+    const homekit_characteristic_t* c7
+  ) noexcept
+    :
+    CService{ service, { c0, c1, c2, c3, c4, c5, c6, c7 } }
+  {}
+  #pragma endregion
+
+  #pragma region CService<9>(...)
+  template<typename T = void, typename = std::enable_if_t<Characteristic_Count == 9, T>>
+  constexpr CService
+  (
+    const homekit_service_t& service,
+    const homekit_characteristic_t* c0,
+    const homekit_characteristic_t* c1,
+    const homekit_characteristic_t* c2,
+    const homekit_characteristic_t* c3,
+    const homekit_characteristic_t* c4,
+    const homekit_characteristic_t* c5,
+    const homekit_characteristic_t* c6,
+    const homekit_characteristic_t* c7,
+    const homekit_characteristic_t* c8
+  ) noexcept
+    :
+    CService{ service, { c0, c1, c2, c3, c4, c5, c6, c7, c8 } }
+  {}
+  #pragma endregion
+
+  #pragma region CService<10>(...)
+  template<typename T = void, typename = std::enable_if_t<Characteristic_Count == 10, T>>
+  constexpr CService
+  (
+    const homekit_service_t& service,
+    const homekit_characteristic_t* c0,
+    const homekit_characteristic_t* c1,
+    const homekit_characteristic_t* c2,
+    const homekit_characteristic_t* c3,
+    const homekit_characteristic_t* c4,
+    const homekit_characteristic_t* c5,
+    const homekit_characteristic_t* c6,
+    const homekit_characteristic_t* c7,
+    const homekit_characteristic_t* c8,
+    const homekit_characteristic_t* c9
+  ) noexcept
+    :
+    CService{ service, { c0, c1, c2, c3, c4, c5, c6, c7, c8, c9 } }
+  {}
+  #pragma endregion
+
 
   //END Construction
   #pragma endregion
@@ -3390,6 +3502,7 @@ class CHomeKit
   uint32_t    mLastHtmlRequestCount{};
   uint32_t    mLastHtmlRequestMS{};
   bool        mHomeKitServerStarted{};
+  bool        mEnergySavingEnabled{true};
 
   static bool mIsPaired; // True if HomeKit is paired (with Apple)
   #pragma endregion
@@ -3555,6 +3668,20 @@ public:
     return mConfig;
   }
   #pragma endregion
+
+  #pragma region DisableEnergySaving
+  /* Deactivate energy-saving mode.
+   * This prevents a PowerBank from switching off at
+   * a load of less than 20 mA. 
+   * @note More likely to be needed during development.
+   * @see Loop
+  */
+  void DisableEnergySaving()
+  {
+    mEnergySavingEnabled = false;
+  }
+  #pragma endregion
+
 
   //END Properties
   #pragma endregion

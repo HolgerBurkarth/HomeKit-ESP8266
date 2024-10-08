@@ -3,7 +3,7 @@
 $CRT 27 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>HomeKit_GarageDoorOpener.h<< 30 Sep 2024  07:03:54 - (c) proDAD
+$DAT >>HomeKit_GarageDoorOpener.h<< 08 Okt 2024  17:46:33 - (c) proDAD
 
 using namespace HBHomeKit::GarageDoorOpener;
 *******************************************************************/
@@ -394,7 +394,10 @@ inline EventRecorder_Ptr MakeStaticPtr(CEventRecorder& pV)
 */
 struct ISystem
 {
-  virtual ~ISystem() = default;
+  /* @note Do not use a virtual destructor to enable constexpr
+   *       for the definition of the service.
+   * virtual ~ISystem() = default;
+  */
 
   virtual HOMEKIT_TARGET_DOOR_STATE GetTargetState() const = 0;
 
