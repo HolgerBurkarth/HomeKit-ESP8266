@@ -232,7 +232,7 @@ CTextEmitter Chart_JavaScript()
         if(typeof gridColor === "string")
         {
           if(gridColor == 'cyan')
-            gridColor = '#066';
+            gridColor = '#044';
           else if(gridColor == 'magenta')
             gridColor = '#818';
         }

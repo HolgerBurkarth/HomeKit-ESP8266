@@ -3,7 +3,7 @@
 $CRT 09 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.h<< 07 Okt 2024  14:35:13 - (c) proDAD
+$DAT >>hb_homekit.h<< 08 Okt 2024  09:23:45 - (c) proDAD
 
 using namespace HBHomeKit;
 *******************************************************************/
@@ -3801,11 +3801,21 @@ const char* DeviceName(const homekit_server_config_t* pConfig = GetHomeKitConfig
 
 #pragma endregion
 
-#pragma region Safe_GetLocalTime
-/* Similar to getLocalTime.
-* If there is no Internet connection, false is returned to avoid a timeout in getLocalTime.
+#pragma region smart_gmtime
+
+/* Get the current time in the form of a tm structure.
+* @param pTM: Pointer to the tm structure to be filled.
+* @return True if the time could be determined, otherwise tm is 1970 based.
+* @node By synchronizing online only once a day, an attempt is made to keep the speed high.
 */
-bool Safe_GetLocalTime(tm*);
+bool smart_gmtime(tm* pTM);
+
+/* Get the time in the form of a tm structure.
+* @param pTM: Pointer to the tm structure to be filled.
+* @param time: Time in seconds since 1970.
+* @node By synchronizing online only once a day, an attempt is made to keep the speed high.
+*/
+void smart_gmtime(tm* pTM, time_t time);
 
 #pragma endregion
 

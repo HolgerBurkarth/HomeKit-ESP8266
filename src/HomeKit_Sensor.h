@@ -3,7 +3,7 @@
 $CRT 05 Okt 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>HomeKit_Sensor.h<< 05 Okt 2024  11:31:41 - (c) proDAD
+$DAT >>HomeKit_Sensor.h<< 08 Okt 2024  06:16:19 - (c) proDAD
 
 using namespace HBHomeKit::Sensor;
 *******************************************************************/
@@ -221,30 +221,33 @@ struct CEventRecorder
     #pragma endregion
 
     #pragma region ToString
-    String ToString() const
+    void ToString(char* pBuf, size_t bufLen) const
     {
-      String s;
-      s.reserve(40);
-
-      time_t Time = ToTime();
-      char Buf[20];
-      strftime(Buf, sizeof(Buf), "%Y-%m-%dT%H:%M:%SZ", gmtime(&Time));
-      s += Buf;
-      s += F(";");
+      size_t Len;
+      tm TM;
+      smart_gmtime(&TM, ToTime());
+      strftime(pBuf, bufLen, "%Y-%m-%dT%H:%M:%SZ;", &TM);
+      pBuf[bufLen-1] = 0;
+      Len = strlen(pBuf);
+      pBuf += Len;
+      bufLen -= Len;
 
       if(HasTemperature)
       {
-        s += F("Temp:");
-        s += static_cast<float>(Temperature);
-        s += F(";");
+        snprintf_P(pBuf, bufLen, PSTR("T:%0.2f;"), static_cast<float>(Temperature));
+        pBuf[bufLen - 1] = 0;
+        Len = strlen(pBuf);
+        pBuf += Len;
+        bufLen -= Len;
       }
       if(HasHumidity)
       {
-        s += F("Hum:");
-        s += static_cast<float>(Humidity);
-        s += F(";");
+        snprintf_P(pBuf, bufLen, PSTR("H:%0.2f;"), static_cast<float>(Humidity));
+        pBuf[bufLen - 1] = 0;
+        Len = strlen(pBuf);
+        pBuf += Len;
+        bufLen -= Len;
       }
-      return s;
     }
 
     #pragma endregion
@@ -283,7 +286,7 @@ struct CEventRecorder
   #pragma region push_back
   void push_back(const CSensorInfo& info)
   {
-    if(mEntries.size() >= MaxEntries)
+    while(mEntries.size() >= MaxEntries)
       mEntries.erase(mEntries.begin());
     mEntries.push_back(CEvent(info));
   }
@@ -298,10 +301,11 @@ struct CEventRecorder
   {
     return [&Entries = mEntries](Stream& out)
       {
+        char Buf[64];
         for(const auto& e : Entries)
         {
-          //Serial.println(e.ToString());
-          out << e.ToString() << F("\n");
+          e.ToString(Buf, sizeof(Buf));
+          out << Buf << F("\n");
         }
       };
   }

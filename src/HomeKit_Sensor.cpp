@@ -3,7 +3,7 @@
 $CRT 05 Okt 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>HomeKit_Sensor.cpp<< 07 Okt 2024  14:35:42 - (c) proDAD
+$DAT >>HomeKit_Sensor.cpp<< 08 Okt 2024  06:31:41 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -207,7 +207,7 @@ struct CContinuousEventRecorderUnit : CUnitBase
           mLastTime = Cur;
 
           struct tm timeinfo;
-          if(Safe_GetLocalTime(&timeinfo))
+          if(smart_gmtime(&timeinfo))
           {
             char TimeStamp[32];
             strftime(TimeStamp, sizeof(TimeStamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
@@ -396,7 +396,7 @@ function UpdateEventChart()
 
     EventChart.SetGridColor('magenta');
     EventChart.SetVrtAxis(MinTemp, MaxTemp, 1);
-    EventChart.DrawBoundaryBox(Temperates[MinTempIndex], Temperates[MaxTempIndex], '#f4f', 0.15);
+    EventChart.DrawBoundaryBox(Temperates[MinTempIndex], Temperates[MaxTempIndex], '#f4f', 0.2);
     EventChart.DrawVrtGrid();
     EventChart.DrawVrtAxisNumbers(true);
     EventChart.DrawVrtAxisLabel("Gard Celsius", true, -1);
@@ -456,7 +456,7 @@ function FormatHumidityAt(index)
 
 
 /*
-responseText: "Time;Temp:0.0;Hum:0.0;\n" ...
+responseText: "2024-10-09T14:12:41Z;T:0.0;H:0.0;\n" ...
 */
 function ParseEntries(responseText)
 {
@@ -474,16 +474,23 @@ function ParseEntries(responseText)
       continue;
 
     var parts = line.split(';');
-    if(parts.length < 3)
+    if(parts.length < 2)
       continue;
 
     var time = new Date(parts[0]);
-    var temp = parts[1].split(':')[1];
-    var hum  = parts[2].split(':')[1];
 
-    EventTime.push(time.getTime() - Now.getTimezoneOffset() * 60000);
-    Humidities.push(parseFloat(hum));
-    Temperates.push(parseFloat(temp));
+    EventTime.push(time.getTime());
+
+    for(var k=1; k < parts.length; ++k)
+    {
+      var Args = parts[k].split(':');
+      if(Args.length < 2)
+        continue;
+      if(Args[0] == 'T')
+        Temperates.push(parseFloat(Args[1]));
+      else if(Args[0] == 'H')
+        Humidities.push(parseFloat(Args[1]));
+    }
   }
   UpdateEventChart();
 }
@@ -501,18 +508,24 @@ function StartPeriodicalUpdate(value)
   if(isNaN(IntervalMS) || IntervalMS < 100)
     IntervalMS = 1000;
 
-  setInterval
+  ForVar('ENTRIES',  responseText => AutoUpdateEntries(responseText) );
+}
+
+function AutoUpdateEntries(responseText)
+{
+  ParseEntries(responseText);
+
+  setTimeout 
   (
     function()
     {
-      ForVar('ENTRIES',  responseText => ParseEntries(responseText) );
+      ForVar('ENTRIES',  responseText => AutoUpdateEntries(responseText) );
     },
     IntervalMS
   );
 }
 
 
-//window.addEventListener('resize', ResizeEventChart);
 
 window.addEventListener('load', (event) =>
 {
@@ -526,7 +539,6 @@ window.addEventListener('load', (event) =>
     (
       function()
       {
-        ForVar('ENTRIES',  responseText => ParseEntries(responseText) );
         ForVar('MAX_RECORD_ENTRIES', responseText => StartMaxEntries(responseText) );
         ForVar('RECORD_INTERVAL', responseText => StartPeriodicalUpdate(responseText) );
 
@@ -705,12 +717,12 @@ void InstallVarsAndCmds(CController& c, CHost& host)
 
     .SetVar("MAX_RECORD_ENTRIES", [&host](auto p)
       {
-        int MacEntries = 1;
+        int MaxEntries = 1;
         IUnit::CEventRecorderArgs Args;
         host.QueryEventRecorder(Args);
         if(Args.Value)
-          MacEntries = Args.Value->MaxEntries;
-        return MakeTextEmitter(String(MacEntries));
+          MaxEntries = Args.Value->MaxEntries;
+        return MakeTextEmitter(String(MaxEntries));
       })
 
     .SetVar("TOTAL_RECORD_TIME_STR", [&host](auto p)
@@ -762,8 +774,6 @@ void AddMenuItems(CController& c)
 
 //END Install and Setup
 #pragma endregion
-
-
 
 
 

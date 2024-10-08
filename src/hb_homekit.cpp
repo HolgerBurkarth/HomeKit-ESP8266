@@ -3,7 +3,7 @@
 $CRT 10 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.cpp<< 07 Okt 2024  14:08:06 - (c) proDAD
+$DAT >>hb_homekit.cpp<< 08 Okt 2024  09:22:57 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -26,15 +26,73 @@ ESP8266WebServer WebServer{ 80 };
 
 #pragma endregion
 
-#pragma region Safe_GetLocalTime
-bool Safe_GetLocalTime(tm* pTM)
-{
-  /* Note: getLocalTime works very slowly if there is no Internet connection. */
-  if(!pTM || !CWiFiConnection::IsSTA())
-    return false;
+#pragma region Safe_GetLocalTime / smart_gmtime
+static tm gbRefTM{};
+static time_t gbRefTime{};
+static bool gbRefTimeSync{};
 
-  return getLocalTime(pTM);
+static void valid_baseTM(time_t curTime = time(nullptr))
+{
+  if(!gbRefTimeSync || curTime - gbRefTime > 3600 * 24)
+  {
+    /* Note: getLocalTime works very slowly if there is no Internet connection. */
+    if(CWiFiConnection::IsSTA())
+      gbRefTimeSync = getLocalTime(&gbRefTM);
+
+    gbRefTime = curTime;
+    gmtime_r(&gbRefTime, &gbRefTM);
+  }
 }
+
+static bool addTM(tm& TM, time_t secs)
+{
+  bool Carry{};
+  TM.tm_hour += secs / 3600;
+  secs %= 3600;
+  TM.tm_min += secs / 60;
+  secs %= 60;
+  TM.tm_sec += secs;
+
+  while(TM.tm_hour >= 24)
+  {
+    Carry = true;
+    TM.tm_hour -= 24;
+    ++TM.tm_mday;
+
+    if(TM.tm_mday > 31)
+    {
+      TM.tm_mday = 1;
+      ++TM.tm_mon;
+    }
+
+    if(TM.tm_mon >= 12)
+    {
+      TM.tm_mon = 0;
+      ++TM.tm_year;
+    }
+  }
+  return Carry;
+}
+
+void smart_gmtime(tm* pTM, time_t time)
+{
+  valid_baseTM(time);
+  *pTM = gbRefTM;
+  if(addTM(*pTM, time - gbRefTime))
+    gbRefTimeSync = false; // next time we will sync again
+}
+
+bool smart_gmtime(tm* pTM)
+{
+  time_t CurTime; 
+  time(&CurTime);
+  valid_baseTM(CurTime);
+  *pTM = gbRefTM;
+  addTM(*pTM, CurTime - gbRefTime);
+  return gbRefTimeSync;
+}
+
+
 #pragma endregion
 
 #pragma region DeviceName
@@ -2003,7 +2061,7 @@ void CController::InstallStdVariables()
     {
       char TimeStamp[32];
       struct tm timeinfo;
-      if(!Safe_GetLocalTime(&timeinfo))
+      if(!smart_gmtime(&timeinfo))
         return MakeTextEmitter(F("????-??-??"));
       else
       {
@@ -2017,7 +2075,7 @@ void CController::InstallStdVariables()
     {
       char TimeStamp[32];
       struct tm timeinfo;
-      if(!Safe_GetLocalTime(&timeinfo))
+      if(!smart_gmtime(&timeinfo))
         return MakeTextEmitter(F("??:??:??"));
       else
       {

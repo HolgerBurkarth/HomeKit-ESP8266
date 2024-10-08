@@ -33,7 +33,7 @@ const char* GetStaticTimeStampText()
 {
   static char TimeStamp[32];
   struct tm timeinfo;
-  if(!Safe_GetLocalTime(&timeinfo))
+  if(!smart_gmtime(&timeinfo))
     return "\t";
   else
   {
