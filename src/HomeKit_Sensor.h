@@ -125,45 +125,6 @@ using fix8_8_t = CFixPoint<int16_t, 8>;
 
 #pragma endregion
 
-#pragma region CDateTime / CDividerDateTime
-
-struct CDateTime
-{
-  using short_t = uint16_t;
-
-  time_t BaseTime{};
-
-  void SetNow() { time(&BaseTime); }
-
-};
-
-template<uint32_t Diver>
-struct CDividerDateTime : CDateTime
-{
-  static constexpr uint32_t Divider = Diver;
-
-  short_t ToShortTime(time_t now) const
-  {
-    return static_cast<uint16_t>((now - BaseTime) / Divider);
-  }
-  short_t Now2ShortTime() const
-  {
-    return ToShortTime(time(nullptr));
-  }
-
-  time_t ToTime(short_t st) const
-  {
-    return BaseTime + st * Divider;
-  }
-
-};
-
-using minute_divider_t = CDividerDateTime<60>;
-using minute16_t = minute_divider_t::short_t;
-
-extern minute_divider_t gbMinuteDivider;
-
-#pragma endregion
 
 #pragma region CEventRecorder
 struct CEventRecorder
@@ -172,7 +133,7 @@ struct CEventRecorder
   struct CEvent // 8 bytes
   {
     #pragma region Fields
-    minute16_t  Minute{};
+    minute16_t  Time{}; // 16bit minutes relative to device start
     fix8_8_t    Temperature{};
     fix10_6_t   Humidity{};
 
@@ -185,7 +146,7 @@ struct CEventRecorder
     CEvent() = default;
     CEvent(const CSensorInfo& info)
     {
-      Minute = gbMinuteDivider.Now2ShortTime();
+      Time.SetNow();
       if(info.Temperature)
       {
         Temperature = *info.Temperature;
@@ -215,17 +176,12 @@ struct CEventRecorder
 
     #pragma endregion
 
-    #pragma region ToTime
-    time_t ToTime() const { return gbMinuteDivider.ToTime(Minute); }
-
-    #pragma endregion
-
     #pragma region ToString
     void ToString(char* pBuf, size_t bufLen) const
     {
       size_t Len;
       tm TM;
-      smart_gmtime(&TM, ToTime());
+      smart_gmtime(&TM, Time);
       strftime(pBuf, bufLen, "%Y-%m-%dT%H:%M:%SZ;", &TM);
       pBuf[bufLen-1] = 0;
       Len = strlen(pBuf);

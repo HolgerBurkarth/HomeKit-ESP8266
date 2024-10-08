@@ -188,7 +188,7 @@ struct CContinuousEventRecorderUnit : CUnitBase
   virtual void Start(CVoidArgs&) override
   {
     //Serial.printf("Size of CEvent = %d bytes\n", sizeof(CEvent));
-    Record.reserve(288);
+    Record.reserve(288/2);
   }
 
   #pragma endregion
@@ -206,6 +206,7 @@ struct CContinuousEventRecorderUnit : CUnitBase
           Record.push_back(mLastInfo);
           mLastTime = Cur;
 
+          #if 0
           struct tm timeinfo;
           if(smart_gmtime(&timeinfo))
           {
@@ -218,6 +219,7 @@ struct CContinuousEventRecorderUnit : CUnitBase
               , mLastInfo.Humidity.value_or(0.0f)
             );
           }
+          #endif
         }
       }
     }
@@ -380,7 +382,7 @@ function UpdateEventChart()
   EventChart.ResetGridColor();
   EventChart.ResetAxisColors();
 
-  EventChart.SetHrzAxis(0,  MaxEntries,   36);
+  EventChart.SetHrzAxis(0,  MaxEntries,  MaxEntries/8);
   EventChart.DrawHrzGrid();
   EventChart.DrawHrzAxisNumbers();
 
@@ -643,7 +645,7 @@ CTextEmitter MainPage_HtmlBody()
 <table class='entrytab'>
 <caption>Settings</caption>
   <tr>
-    <th>Interval</th>
+    <th>Recording interval</th>
     <td>{RECORD_INTERVAL_STR}</td>
   </tr>
   <tr>

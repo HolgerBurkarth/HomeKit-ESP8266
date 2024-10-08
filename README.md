@@ -37,7 +37,11 @@ The documentation of the types, methods and functions is included in the source 
 
 - [hb_homekit.h](./src/hb_homekit.h) - General part of the library
 - [HomeKit_GarageDoorOpener.h](./src/HomeKit_GarageDoorOpener.h) - Framework for garage door opener
-    - [GarageDoor.h](./examples/GarageDoor\GarageDoor.h) - Example of a garage door opener
+    - [GarageDoor.h](./examples/GarageDoor/GarageDoor.h) - Example of a garage door opener
+- [HomeKit_Sensor.h](./src/HomeKit_Sensor.h) - Framework for a sensor
+    - [Sensor.h](./examples/Sensor/Sensor.h) - Example of a sensor (temperature, humidity, etc.)
+- [HomeKit_Switch.h](./src/HomeKit_Switch.h) - Framework for a switcher
+    - [Switch.h](./examples/Switch/Switch.h) - Example of a switcher
 
 ---
 
@@ -103,6 +107,12 @@ is closed, open, or half open.
 
 Read more: [Garage Door Opener Project](./examples/GarageDoor/README.md)
   
+### 2. Sensor (Temperature, Humidity)
+
+![Sensor](./media/en-hp-sensor01.jpg)
+
+![Sensor](./media/en-hp-sensor02.jpg)
+
 ---
 
 ## Further technical details
@@ -153,6 +163,10 @@ Read more: [Garage Door Opener Project](./examples/GarageDoor/README.md)
 
 
 ### Change Log
+
+#### v2.0.2 (2024-10-08)
+* Support and examples for a sensor (temperature, humidity, etc.)
+* Support and examples for a switcher
 
 #### v2.0.0 (2024-10-01)
 

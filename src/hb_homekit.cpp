@@ -26,14 +26,14 @@ ESP8266WebServer WebServer{ 80 };
 
 #pragma endregion
 
-#pragma region Safe_GetLocalTime / smart_gmtime
+#pragma region smart_gmtime
 static tm gbRefTM{};
 static time_t gbRefTime{};
 static bool gbRefTimeSync{};
 
 static void valid_baseTM(time_t curTime = time(nullptr))
 {
-  if(!gbRefTimeSync || curTime - gbRefTime > 3600 * 24)
+  if(!gbRefTimeSync)
   {
     /* Note: getLocalTime works very slowly if there is no Internet connection. */
     if(CWiFiConnection::IsSTA())
@@ -78,8 +78,7 @@ void smart_gmtime(tm* pTM, time_t time)
 {
   valid_baseTM(time);
   *pTM = gbRefTM;
-  if(addTM(*pTM, time - gbRefTime))
-    gbRefTimeSync = false; // next time we will sync again
+  addTM(*pTM, time - gbRefTime);
 }
 
 bool smart_gmtime(tm* pTM)
@@ -87,10 +86,14 @@ bool smart_gmtime(tm* pTM)
   time_t CurTime; 
   time(&CurTime);
   valid_baseTM(CurTime);
+  bool Ret = gbRefTimeSync;
   *pTM = gbRefTM;
-  addTM(*pTM, CurTime - gbRefTime);
-  return gbRefTimeSync;
+  if(addTM(*pTM, CurTime - gbRefTime))
+    gbRefTimeSync = false; // next time we will sync again
+  return Ret;
 }
+
+time_t CDateTime::BaseTime() { return gbRefTime;}
 
 
 #pragma endregion
@@ -2513,6 +2516,7 @@ void CHomeKit::Loop()
       Interval /= 2; // Nyquist–Shannon sampling theorem
       Interval = std::min<uint32_t>(500, Interval); // not longer than 500ms
       Interval = std::max<uint32_t>(25, Interval);  // not shorter than 25ms
+      homekit_enter_http_idle();
       delay(Interval); // save energy
       //Serial.printf("CHomeKit::Loop:  Delay %d ms\n", Interval);
     }

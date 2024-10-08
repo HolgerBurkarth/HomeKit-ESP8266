@@ -807,6 +807,51 @@ using CInvoker = std::function<void(CInvokerParam)>;
 
 #pragma endregion
 
+#pragma region CDateTime / CShortTime / minute16_t
+
+struct CDateTime
+{
+  using short_t = uint16_t;
+
+  static time_t BaseTime();
+};
+
+template<uint32_t Diver>
+struct CShortTime
+{
+  static constexpr uint32_t Divider = Diver;
+
+  uint16_t mSTime{};
+
+  CShortTime() = default;
+  CShortTime(time_t now) : mSTime(Time2Sort(now)) {}
+
+  static CShortTime Now() { return CShortTime{ time(nullptr) }; }
+
+  void SetNow() { mSTime = Time2Sort(time(nullptr)); }
+
+  CShortTime& operator=(const CShortTime& v) { mSTime = v.mSTime; return *this; }
+
+  operator time_t() const { return Short2Time(mSTime); }
+
+
+  static uint16_t Time2Sort(time_t now)
+  {
+    return static_cast<uint16_t>((now - CDateTime::BaseTime()) / Divider);
+  }
+
+  static time_t Short2Time(uint16_t st)
+  {
+    return CDateTime::BaseTime() + st * Divider;
+  }
+
+};
+
+
+using minute16_t = CShortTime<60>; // 16bit minutes relative to device start
+
+#pragma endregion
+
 #pragma region CTicker / CTickerSlots
 
 #pragma region CTickerSlot

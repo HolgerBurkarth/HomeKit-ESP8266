@@ -3,7 +3,7 @@
 $CRT 16 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>arduino_homekit_server.cpp<< 04 Okt 2024  07:54:39 - (c) proDAD
+$DAT >>arduino_homekit_server.cpp<< 08 Okt 2024  09:39:31 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -613,10 +613,17 @@ Info	2024-10-04 06:07:29	Closing client connection
 #pragma endregion
 
 #pragma region LockWebServer
-static uint32_t gbHttpReqCount = 0;
+static uint32_t gbHttpReqCount{};
+static uint32_t gbHttpReqCountIdle{};
 
 void homekit_touch_http_request()
 {
+  if(gbHttpReqCountIdle == gbHttpReqCount)
+  {
+    system_update_cpu_freq(SYS_CPU_160MHZ);
+    VERBOSE("Set 160MHz (leave HTTP idle)");
+  }
+  
   ++gbHttpReqCount;
 }
 
@@ -625,6 +632,16 @@ uint32_t homekit_http_request_count()
   return gbHttpReqCount;
 }
 
+void homekit_enter_http_idle()
+{
+  if(gbHttpReqCountIdle != gbHttpReqCount)
+  {
+    gbHttpReqCountIdle = gbHttpReqCount;
+
+    system_update_cpu_freq(SYS_CPU_80MHZ);
+    VERBOSE("Set 80MHz (enter HTTP idle)");
+  }
+}
 
 static void LockWebServer(bool enterLock)
 {
