@@ -24,13 +24,29 @@ namespace Thermostat
 class CControlUnit : public CUnitBase
 {
   #pragma region Fields
+  const uint32_t TickerInterval{ 1000 }; // 1 Hz
+
   CSensorInfo     mSensorInfo{};
   CThermostatInfo mThermostatInfo{};
+  CMessage        mLastMessage{};
 
 public:
   #pragma endregion
 
   #pragma region Override Methods
+
+  #pragma region Start
+  void Start(CVoidArgs&) override
+  {
+
+    Ctrl->Ticker.Start(TickerInterval, [this](auto args)
+      {
+        SendNextNessageToHomeKit();
+      });
+
+  }
+
+  #pragma endregion
 
   #pragma region ReadSensorInfo
   void ReadSensorInfo(CSensorInfoArgs& args) override
@@ -70,7 +86,7 @@ public:
   {
     CThermostatInfoArgs Args;
     Args.Value.TargetTemperature = args.Value;
-    WriteThermostatInfo(Args);
+    Super->WriteThermostatInfo(Args);
   }
 
   #pragma endregion
@@ -79,7 +95,7 @@ public:
   {
     CThermostatInfoArgs Args;
     Args.Value.TargetHumidity = args.Value;
-    WriteThermostatInfo(Args);
+    Super->WriteThermostatInfo(Args);
   }
 
   #pragma endregion
@@ -88,7 +104,7 @@ public:
   {
     CThermostatInfoArgs Args;
     Args.Value.TargetState = args.Value;
-    WriteThermostatInfo(Args);
+    Super->WriteThermostatInfo(Args);
   }
 
   #pragma endregion
@@ -97,7 +113,7 @@ public:
   {
     CThermostatInfoArgs Args;
     Args.Value.DisplayUnit = args.Value;
-    WriteThermostatInfo(Args);
+    Super->WriteThermostatInfo(Args);
   }
 
   #pragma endregion
@@ -106,7 +122,7 @@ public:
   {
     CThermostatInfoArgs Args;
     Args.Value.HeatingThresholdTemperature = args.Value;
-    WriteThermostatInfo(Args);
+    Super->WriteThermostatInfo(Args);
   }
 
   #pragma endregion
@@ -115,14 +131,86 @@ public:
   {
     CThermostatInfoArgs Args;
     Args.Value.CoolingThresholdTemperature = args.Value;
-    WriteThermostatInfo(Args);
+    Super->WriteThermostatInfo(Args);
   }
 
   #pragma endregion
 
+  #pragma region QueryNextMessage
+  void QueryNextMessage(CMessageArgs& args) override
+  {
+    auto& Msg = args.Value;
+
+    //Serial.printf("TargetTemperature = %0.2f\n", mThermostatInfo.TargetTemperature_OrDefault());
+    //Serial.printf("TargetState_OrDefault = %d\n", mThermostatInfo.TargetState_OrDefault());
+
+    switch(mThermostatInfo.TargetState_OrDefault())
+    {
+      default:
+      case HOMEKIT_TARGET_HEATING_COOLING_STATE_OFF:
+        Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF;
+        break;
+
+      case HOMEKIT_TARGET_HEATING_COOLING_STATE_HEAT:
+        if(mSensorInfo.Temperature < mThermostatInfo.TargetTemperature_OrDefault())
+          Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT;
+        break;
+
+      case HOMEKIT_TARGET_HEATING_COOLING_STATE_COOL:
+        if(mSensorInfo.Temperature > mThermostatInfo.TargetTemperature_OrDefault())
+          Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL;
+        break;
+
+      case HOMEKIT_TARGET_HEATING_COOLING_STATE_AUTO:
+        if(mThermostatInfo.HeatingThresholdTemperature)
+        {
+          if(mSensorInfo.Temperature < mThermostatInfo.HeatingThresholdTemperature)
+            Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT;
+        }
+        if(mThermostatInfo.CoolingThresholdTemperature)
+        {
+          if(mSensorInfo.Temperature > mThermostatInfo.CoolingThresholdTemperature)
+            Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL;
+        }
+        break;
+    }
+
+    //Serial.printf("HCState = %d\n", Msg.HCState.value_or(HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF));
+    args.Handled = true;
+  }
+  #pragma endregion
+
+
 
   //END Override Methods
   #pragma endregion
+
+  #pragma region SendNextNessageToHomeKit
+  void SendNextNessageToHomeKit()
+  {
+    CMessageArgs MsgArgs;
+    Super->QueryNextMessage(MsgArgs);
+    if(!MsgArgs.Handled)
+      return;
+    const CMessage& Msg = MsgArgs;
+
+    /* Send values to HomeKit only when they change.
+    * Never do this permanently, or external value changes
+    * will be overwritten and cannot be processed.
+    */
+
+    {
+      auto HCState = Msg.HCState.value_or(HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF);
+      if(!mLastMessage.HCState || HCState != *mLastMessage.HCState)
+      {
+        System->SetCurrentState(HCState);
+        mLastMessage.HCState = HCState;
+      }
+    }
+  }
+
+  #pragma endregion
+
 };
 
 IUnit_Ptr MakeControlUnit()
@@ -187,45 +275,90 @@ IUnit_Ptr MakeContinuousReadSensorUnit(uint32_t interval, std::function<CSensorI
 //END CContinuousReadSensorUnit
 #pragma endregion
 
-#pragma region COnSensorChangedUnit - Implementation
-class COnSensorChangedUnit : public CUnitBase
+#pragma region COnChangedUnit - Implementation
+class COnChangedUnit : public CUnitBase
 {
-  using NotifyFunc = std::function<void(const CSensorInfo&)>;
+  using NotifyFunc = std::function<void(const CChangeInfo&)>;
 
   #pragma region Fields
-  NotifyFunc mNotify;
+  uint32_t    mIntervalMS;
+  NotifyFunc  mNotify;
+  CChangeInfo mInfo;
+  bool        mWasChanged{};
 
   #pragma endregion
 
   #pragma region Construction
 public:
-  COnSensorChangedUnit(NotifyFunc&& func)
-    : mNotify(std::move(func))
+  COnChangedUnit(uint32_t intervalMS, NotifyFunc&& func)
+    : mIntervalMS(std::max<uint32_t>(250, intervalMS))
+    , mNotify(std::move(func))
   {}
 
   #pragma endregion
 
   #pragma region Override Methods
 
+  #pragma region Start
+  void Start(CVoidArgs&) override
+  {
+
+    Ctrl->Ticker.Start(mIntervalMS, [this](auto args)
+      {
+        mInfo.Changed = mWasChanged;
+        mInfo.CurrentState = System->GetCurrentState();
+        //if(mWasChanged)
+        {
+          mNotify(mInfo);
+          mWasChanged = false;
+        }
+        mInfo.Changed = false;
+      });
+
+  }
+
+  #pragma endregion
+
   #pragma region WriteSensorInfo
 
   void WriteSensorInfo(CSensorInfoArgs& args) override
   {
-    mNotify(args.Value);
+    mInfo.Sensor.Assign(args.Value);
+    mWasChanged = true;
   }
 
   #pragma endregion
+
+  #pragma region WriteThermostatInfo
+  void WriteThermostatInfo(CThermostatInfoArgs& args) override
+  {
+    mInfo.Thermostat.Assign(args.Value);
+    mWasChanged = true;
+    //Serial.printf("WriteThermostatInfo %d\n", args.Value.TargetState_OrDefault());
+  }
+  #pragma endregion
+
+  #pragma region QueryNextMessage
+  void QueryNextMessage(CMessageArgs& args) override
+  {
+    mInfo.CurrentState = args.Value.HCState.value_or(HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF);
+    mWasChanged = true;
+  }
+  #pragma endregion
+
+
+
 
   //END Override Methods
   #pragma endregion
 };
 
-IUnit_Ptr MakeOnSensorChangedUnit(std::function<void(const CSensorInfo&)> func)
+IUnit_Ptr MakeOnChangedUnit(uint32_t intervalMS, std::function<void(const CChangeInfo&)> func)
 {
-  return std::make_shared<COnSensorChangedUnit>(std::move(func));
+  return std::make_shared<COnChangedUnit>(intervalMS, std::move(func));
 }
 
-//END COnSensorChangedUnit
+//END COnChangedUnit
 #pragma endregion
 
 #pragma region CContinuousEventRecorderUnit - Implementation
@@ -673,10 +806,6 @@ function SetTargetState(value)
 {
   ForSetVar('TARGET_STATE', value, responseText => UIUpdateTargetState(responseText) );
 }
-function SetCurrentState(value) 
-{
-  ForSetVar('CURRENT_STATE', value, responseText => UIUpdateCurrentState(responseText) );
-}
 function SetTargetTemperature(value)
 {
   ForSetVar('TARGET_TEMPERATURE', value, responseText => UIUpdateTargetTemperature(responseText) );
@@ -722,7 +851,7 @@ window.addEventListener('load', (event) =>
       { 
         Update(); 
       },
-      5000
+      2000
     );
 });
 
@@ -805,14 +934,6 @@ CTextEmitter HomeKit_HtmlBody()
   </td>
 </tr>
 <tr>
-  <th>Current State</th>
-  <td>
-    {ACTION_BUTTON:SetCurrentState('off'):OFF}
-    {ACTION_BUTTON:SetCurrentState('heat'):HEAT}
-    {ACTION_BUTTON:SetCurrentState('cool'):COOL}
-  </td>
-</tr>
-<tr>
   <th>Target Temperature</th>
   <td>
     {ACTION_BUTTON:SetTargetTemperature('15'):15&deg;C}
@@ -828,17 +949,17 @@ CTextEmitter HomeKit_HtmlBody()
   </td>
 </tr>
 <tr>
-  <th>Cooling Threshold Temperature</th>
-  <td>
-    {ACTION_BUTTON:SetCoolingThresholdTemperature('27'):37&deg;C}
-    {ACTION_BUTTON:SetCoolingThresholdTemperature('32'):32&deg;C}
-  </td>
-</tr>
-<tr>
   <th>Heating Threshold Temperature</th>
   <td>
     {ACTION_BUTTON:SetHeatingThresholdTemperature('15'):15&deg;C}
     {ACTION_BUTTON:SetHeatingThresholdTemperature('24'):24&deg;C}
+  </td>
+</tr>
+<tr>
+  <th>Cooling Threshold Temperature</th>
+  <td>
+    {ACTION_BUTTON:SetCoolingThresholdTemperature('20'):20&deg;C}
+    {ACTION_BUTTON:SetCoolingThresholdTemperature('30'):30&deg;C}
   </td>
 </tr>
 </table>
@@ -973,17 +1094,12 @@ void InstallVarsAndCmds(CController& c, CThermostatService& svr, CHost& host)
     #pragma region TARGET_TEMPERATURE
     .SetVar("TARGET_TEMPERATURE", [&](auto p)
       {
-        IUnit::CThermostatInfoArgs Args;
-        host.ReadThermostatInfo(Args);
-
         if(p.Args[0] != nullptr)
         {
           float Temp = convert_value<float>(*p.Args[0]);
-          Args.Value.TargetTemperature = Temp;
-          host.WriteThermostatInfo(Args);
+          modify_value_and_notify(&svr.TargetTemperature, Temp);
         }
-
-        return MakeTextEmitter(String(Args.Value.TargetTemperature_OrDefault()));
+        return MakeTextEmitter(svr.TargetTemperature);
       })
 
     #pragma endregion
@@ -991,17 +1107,12 @@ void InstallVarsAndCmds(CController& c, CThermostatService& svr, CHost& host)
     #pragma region TARGET_HUMIDITY
     .SetVar("TARGET_HUMIDITY", [&](auto p)
       {
-        IUnit::CThermostatInfoArgs Args;
-        host.ReadThermostatInfo(Args);
-
         if(p.Args[0] != nullptr)
         {
           float Temp = convert_value<float>(*p.Args[0]);
-          Args.Value.TargetHumidity = Temp;
-          host.WriteThermostatInfo(Args);
+          modify_value_and_notify(&svr.TargetHumidity, Temp);
         }
-
-        return MakeTextEmitter(String(Args.Value.TargetHumidity_OrDefault()));
+        return MakeTextEmitter(svr.TargetHumidity);
       })
 
     #pragma endregion
@@ -1009,17 +1120,13 @@ void InstallVarsAndCmds(CController& c, CThermostatService& svr, CHost& host)
     #pragma region COOLING_THRESHOLD_TEMPERATURE
     .SetVar("COOLING_THRESHOLD_TEMPERATURE", [&](auto p)
     {
-      IUnit::CThermostatInfoArgs Args;
-      host.ReadThermostatInfo(Args);
-
       if(p.Args[0] != nullptr)
       {
         float Temp = convert_value<float>(*p.Args[0]);
-        Args.Value.CoolingThresholdTemperature = Temp;
-        host.WriteThermostatInfo(Args);
+        modify_value_and_notify(&svr.CoolingThresholdTemperature, Temp);
       }
 
-      return MakeTextEmitter(String(Args.Value.CoolingThresholdTemperature_OrDefault()));
+      return MakeTextEmitter(svr.CoolingThresholdTemperature);
     })
 
     #pragma endregion
@@ -1027,21 +1134,16 @@ void InstallVarsAndCmds(CController& c, CThermostatService& svr, CHost& host)
     #pragma region HEATING_THRESHOLD_TEMPERATURE
     .SetVar("HEATING_THRESHOLD_TEMPERATURE", [&](auto p)
     {
-      IUnit::CThermostatInfoArgs Args;
-      host.ReadThermostatInfo(Args);
-
       if(p.Args[0] != nullptr)
       {
         float Temp = convert_value<float>(*p.Args[0]);
-        Args.Value.HeatingThresholdTemperature = Temp;
-        host.WriteThermostatInfo(Args);
+        modify_value_and_notify(&svr.HeatingThresholdTemperature, Temp);
       }
 
-      return MakeTextEmitter(String(Args.Value.HeatingThresholdTemperature_OrDefault()));
+      return MakeTextEmitter(svr.HeatingThresholdTemperature);
     })
 
     #pragma endregion
-
 
 
     #pragma region TEMPERATURE
