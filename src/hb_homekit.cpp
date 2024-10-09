@@ -3,7 +3,7 @@
 $CRT 10 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.cpp<< 08 Okt 2024  09:22:57 - (c) proDAD
+$DAT >>hb_homekit.cpp<< 09 Okt 2024  06:33:50 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -26,12 +26,21 @@ ESP8266WebServer WebServer{ 80 };
 
 #pragma endregion
 
-#pragma region smart_gmtime
+#pragma region smart_gmtime - Implementation
 static tm gbRefTM{};
 static time_t gbRefTime{};
 static bool gbRefTimeSync{};
 
-static void valid_baseTM(time_t curTime = time(nullptr))
+/* https://cplusplus.com/reference/ctime/tm/
+tm_sec	int	seconds after the minute	0-61*
+tm_min	int	minutes after the hour	  0-59
+tm_hour	int	hours since midnight	    0-23
+tm_mday	int	day of the month	        1-31
+tm_mon	int	months since January	    0-11
+tm_year	int	years since               1900
+*/
+
+static void sync_ref_time()
 {
   if(!gbRefTimeSync)
   {
@@ -39,58 +48,24 @@ static void valid_baseTM(time_t curTime = time(nullptr))
     if(CWiFiConnection::IsSTA())
       gbRefTimeSync = getLocalTime(&gbRefTM);
 
-    gbRefTime = curTime;
-    gmtime_r(&gbRefTime, &gbRefTM);
+    time(&gbRefTime);
   }
-}
-
-static bool addTM(tm& TM, time_t secs)
-{
-  bool Carry{};
-  TM.tm_hour += secs / 3600;
-  secs %= 3600;
-  TM.tm_min += secs / 60;
-  secs %= 60;
-  TM.tm_sec += secs;
-
-  while(TM.tm_hour >= 24)
-  {
-    Carry = true;
-    TM.tm_hour -= 24;
-    ++TM.tm_mday;
-
-    if(TM.tm_mday > 31)
-    {
-      TM.tm_mday = 1;
-      ++TM.tm_mon;
-    }
-
-    if(TM.tm_mon >= 12)
-    {
-      TM.tm_mon = 0;
-      ++TM.tm_year;
-    }
-  }
-  return Carry;
 }
 
 void smart_gmtime(tm* pTM, time_t time)
 {
-  valid_baseTM(time);
-  *pTM = gbRefTM;
-  addTM(*pTM, time - gbRefTime);
+  gmtime_r(&time, pTM);
 }
 
 bool smart_gmtime(tm* pTM)
 {
   time_t CurTime; 
   time(&CurTime);
-  valid_baseTM(CurTime);
-  bool Ret = gbRefTimeSync;
-  *pTM = gbRefTM;
-  if(addTM(*pTM, CurTime - gbRefTime))
-    gbRefTimeSync = false; // next time we will sync again
-  return Ret;
+  
+  sync_ref_time();
+  gmtime_r(&CurTime, pTM);
+
+  return gbRefTimeSync;
 }
 
 time_t CDateTime::BaseTime() { return gbRefTime;}
