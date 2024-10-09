@@ -3,7 +3,7 @@
 $CRT 09 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.h<< 08 Okt 2024  09:23:45 - (c) proDAD
+$DAT >>hb_homekit.h<< 09 Okt 2024  07:31:59 - (c) proDAD
 
 using namespace HBHomeKit;
 *******************************************************************/
@@ -1588,6 +1588,19 @@ public:
 
 
   //END Construction
+  #pragma endregion
+
+  #pragma region Properties
+  constexpr int Count() const noexcept
+  { 
+    int i;
+    for(i = 0; i < Characteristic_Count && Characteristics[i]; ++i)
+    {
+      if(Characteristics[i] == nullptr)
+        break;
+    }
+    return i;
+  }
   #pragma endregion
 
   #pragma region Operators
