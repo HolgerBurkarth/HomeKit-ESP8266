@@ -1476,12 +1476,109 @@ enum HOMEKIT_TARGET_HEATING_COOLING_STATE //: uint8_t
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
     .value = HOMEKIT_FLOAT_(_value), \
-    .min_value = (const float[]) {-50}, \
-    .max_value = (const float[]) {+70}, \
+    .min_value = (const float[]) {15}, \
+    .max_value = (const float[]) {35}, \
     .min_step = (const float[]) {0.1}, \
     ##__VA_ARGS__
 
 #pragma endregion
+
+#pragma region HOMEKIT_DECLARE_CHARACTERISTIC_STATUS_ACTIVE
+#define HOMEKIT_CHARACTERISTIC_STATUS_ACTIVE HOMEKIT_APPLE_UUID2("75")
+#define HOMEKIT_DECLARE_CHARACTERISTIC_STATUS_ACTIVE(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_STATUS_ACTIVE, \
+    .description = "Status Active", \
+    .format = homekit_format_bool, \
+    .permissions = homekit_permissions_paired_read \
+                 | homekit_permissions_notify, \
+    .value = HOMEKIT_BOOL_(_value), \
+    ##__VA_ARGS__
+
+#pragma endregion
+
+#pragma region HOMEKIT_DECLARE_CHARACTERISTIC_ACTIVE
+enum HOMEKIT_CHARACTERISTIC_STATUS
+{
+  HOMEKIT_STATUS_INACTIVE = 0,
+  HOMEKIT_STATUS_ACTIVE   = 1
+};
+#define HOMEKIT_CHARACTERISTIC_ACTIVE HOMEKIT_APPLE_UUID2("B0")
+#define HOMEKIT_DECLARE_CHARACTERISTIC_ACTIVE(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_ACTIVE, \
+    .description = "Active", \
+    .format = homekit_format_uint8, \
+    .permissions = homekit_permissions_paired_read \
+                 | homekit_permissions_paired_write \
+                 | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
+    .min_value = (const float[]) {0}, \
+    .max_value = (const float[]) {1}, \
+    .valid_values = { \
+        .count = 2, \
+        .values = (const uint8_t[]) { 0, 1 }, \
+    }, \
+    ##__VA_ARGS__
+
+#pragma endregion
+
+#pragma region HOMEKIT_CURRENT_HEATER_COOLER_STATE
+enum HOMEKIT_CURRENT_HEATER_COOLER_STATE
+{
+  HOMEKIT_CURRENT_HEATER_COOLER_STATE_INACTIVE = 0,
+  HOMEKIT_CURRENT_HEATER_COOLER_STATE_IDLE     = 1,
+  HOMEKIT_CURRENT_HEATER_COOLER_STATE_HEATING  = 2,
+  HOMEKIT_CURRENT_HEATER_COOLER_STATE_COOLING  = 3
+
+};
+#define HOMEKIT_CHARACTERISTIC_CURRENT_HEATER_COOLER_STATE HOMEKIT_APPLE_UUID2("B1")
+#define HOMEKIT_CURRENT_HEATER_COOLER_STATE(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_CURRENT_HEATER_COOLER_STATE, \
+    .description = "Current Heater Cooler State", \
+    .format = homekit_format_uint8, \
+    .permissions = homekit_permissions_paired_read \
+                 | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
+    .min_value = (const float[]) {0}, \
+    .max_value = (const float[]) {3}, \
+    .min_step = (const float[]) {1}, \
+    .valid_values = { \
+        .count = 4, \
+        .values = (const uint8_t[]) { 0, 1, 2, 3 }, \
+    }, \
+    ##__VA_ARGS__
+
+#pragma endregion
+
+#pragma region HOMEKIT_TARGET_HEATER_COOLER_STATE
+enum HOMEKIT_TARGET_HEATER_COOLER_STATE
+{
+  HOMEKIT_TARGET_HEATER_COOLER_STATE_AUTO = 0,
+  HOMEKIT_TARGET_HEATER_COOLER_STATE_HEAT = 1,
+  HOMEKIT_TARGET_HEATER_COOLER_STATE_COOL = 2
+};
+#define HOMEKIT_CHARACTERISTIC_TARGET_HEATER_COOLER_STATE HOMEKIT_APPLE_UUID2("B2")
+#define HOMEKIT_TARGET_HEATER_COOLER_STATE(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_TARGET_HEATER_COOLER_STATE, \
+    .description = "Target Heater Cooler State", \
+    .format = homekit_format_uint8, \
+    .permissions = homekit_permissions_paired_read \
+                 | homekit_permissions_paired_write \
+                 | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
+    .min_value = (const float[]) {0}, \
+    .max_value = (const float[]) {2}, \
+    .min_step = (const float[]) {1}, \
+    .valid_values = { \
+        .count = 3, \
+        .values = (const uint8_t[]) { 0, 1, 2 }, \
+    }, \
+    ##__VA_ARGS__
+
+#pragma endregion
+
+
+
+
 
 
 
@@ -1697,16 +1794,6 @@ enum HOMEKIT_TARGET_HEATING_COOLING_STATE //: uint8_t
         .count = 3, \
         .values = (const uint8_t[]) { 0, 1, 2 }, \
     }, \
-    ##__VA_ARGS__
-
-#define HOMEKIT_CHARACTERISTIC_STATUS_ACTIVE HOMEKIT_APPLE_UUID2("75")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_STATUS_ACTIVE(_value, ...) \
-    .type = HOMEKIT_CHARACTERISTIC_STATUS_ACTIVE, \
-    .description = "Status Active", \
-    .format = homekit_format_bool, \
-    .permissions = homekit_permissions_paired_read \
-                 | homekit_permissions_notify, \
-    .value = HOMEKIT_BOOL_(_value), \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_SMOKE_DETECTED HOMEKIT_APPLE_UUID2("76")
@@ -2246,23 +2333,6 @@ enum HOMEKIT_TARGET_HEATING_COOLING_STATE //: uint8_t
     }, \
     ##__VA_ARGS__
 
-#define HOMEKIT_CHARACTERISTIC_ACTIVE HOMEKIT_APPLE_UUID2("B0")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_ACTIVE(_value, ...) \
-    .type = HOMEKIT_CHARACTERISTIC_ACTIVE, \
-    .description = "Active", \
-    .format = homekit_format_uint8, \
-    .permissions = homekit_permissions_paired_read \
-                 | homekit_permissions_paired_write \
-                 | homekit_permissions_notify, \
-    .value = HOMEKIT_UINT8_(_value), \
-    .min_value = (const float[]) {0}, \
-    .max_value = (const float[]) {1}, \
-    .valid_values = { \
-        .count = 2, \
-        .values = (const uint8_t[]) { 0, 1 }, \
-    }, \
-    ##__VA_ARGS__
-
 #define HOMEKIT_CHARACTERISTIC_SWING_MODE HOMEKIT_APPLE_UUID2("B6")
 #define HOMEKIT_DECLARE_CHARACTERISTIC_SWING_MODE(_value, ...) \
     .type = HOMEKIT_CHARACTERISTIC_SWING_MODE, \
@@ -2515,41 +2585,6 @@ enum HOMEKIT_TARGET_HEATING_COOLING_STATE //: uint8_t
     .valid_values = { \
         .count = 4, \
         .values = (const uint8_t[]) { 0, 1, 2, 3 }, \
-    }, \
-    ##__VA_ARGS__
-
-#define HOMEKIT_CHARACTERISTIC_CURRENT_HEATER_COOLER_STATE HOMEKIT_APPLE_UUID2("B1")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_CURRENT_HEATER_COOLER_STATE(_value, ...) \
-    .type = HOMEKIT_CHARACTERISTIC_CURRENT_HEATER_COOLER_STATE, \
-    .description = "Current Heater Cooler State", \
-    .format = homekit_format_uint8, \
-    .permissions = homekit_permissions_paired_read \
-                 | homekit_permissions_notify, \
-    .value = HOMEKIT_UINT8_(_value), \
-    .min_value = (const float[]) {0}, \
-    .max_value = (const float[]) {3}, \
-    .min_step = (const float[]) {1}, \
-    .valid_values = { \
-        .count = 4, \
-        .values = (const uint8_t[]) { 0, 1, 2, 3 }, \
-    }, \
-    ##__VA_ARGS__
-
-#define HOMEKIT_CHARACTERISTIC_TARGET_HEATER_COOLER_STATE HOMEKIT_APPLE_UUID2("B2")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_TARGET_HEATER_COOLER_STATE(_value, ...) \
-    .type = HOMEKIT_CHARACTERISTIC_TARGET_HEATER_COOLER_STATE, \
-    .description = "Target Heater Cooler State", \
-    .format = homekit_format_uint8, \
-    .permissions = homekit_permissions_paired_read \
-                 | homekit_permissions_paired_write \
-                 | homekit_permissions_notify, \
-    .value = HOMEKIT_UINT8_(_value), \
-    .min_value = (const float[]) {0}, \
-    .max_value = (const float[]) {2}, \
-    .min_step = (const float[]) {1}, \
-    .valid_values = { \
-        .count = 3, \
-        .values = (const uint8_t[]) { 0, 1, 2 }, \
     }, \
     ##__VA_ARGS__
 

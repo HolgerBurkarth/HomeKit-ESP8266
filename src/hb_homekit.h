@@ -578,6 +578,36 @@ template<> constexpr homekit_value_t static_value_cast<HOMEKIT_TEMPERATURE_DISPL
   return static_value_cast(static_cast<uint8_t>(value));
 }
 
+/* HOMEKIT_CHARACTERISTIC_STATUS <-> homekit_value_t */
+template<> constexpr HOMEKIT_CHARACTERISTIC_STATUS static_value_cast<HOMEKIT_CHARACTERISTIC_STATUS>(const homekit_value_t& value) noexcept
+{
+  return static_cast<HOMEKIT_CHARACTERISTIC_STATUS>(static_value_cast<uint8_t>(value));
+}
+template<> constexpr homekit_value_t static_value_cast<HOMEKIT_CHARACTERISTIC_STATUS>(HOMEKIT_CHARACTERISTIC_STATUS value) noexcept
+{
+  return static_value_cast(static_cast<uint8_t>(value));
+}
+
+/* HOMEKIT_CURRENT_HEATER_COOLER_STATE <-> homekit_value_t */
+template<> constexpr HOMEKIT_CURRENT_HEATER_COOLER_STATE static_value_cast<HOMEKIT_CURRENT_HEATER_COOLER_STATE>(const homekit_value_t& value) noexcept
+{
+  return static_cast<HOMEKIT_CURRENT_HEATER_COOLER_STATE>(static_value_cast<uint8_t>(value));
+}
+template<> constexpr homekit_value_t static_value_cast<HOMEKIT_CURRENT_HEATER_COOLER_STATE>(HOMEKIT_CURRENT_HEATER_COOLER_STATE value) noexcept
+{
+  return static_value_cast(static_cast<uint8_t>(value));
+}
+
+/* HOMEKIT_TARGET_HEATER_COOLER_STATE <-> homekit_value_t */
+template<> constexpr HOMEKIT_TARGET_HEATER_COOLER_STATE static_value_cast<HOMEKIT_TARGET_HEATER_COOLER_STATE>(const homekit_value_t& value) noexcept
+{
+  return static_cast<HOMEKIT_TARGET_HEATER_COOLER_STATE>(static_value_cast<uint8_t>(value));
+}
+template<> constexpr homekit_value_t static_value_cast<HOMEKIT_TARGET_HEATER_COOLER_STATE>(HOMEKIT_TARGET_HEATER_COOLER_STATE value) noexcept
+{
+  return static_value_cast(static_cast<uint8_t>(value));
+}
+
 
 //END Implementation
 #pragma endregion
@@ -2710,6 +2740,7 @@ public:
     */
   bool TryGetVar(const char* var, String* pContent, CInvokerParam param = {}) const;
   bool TryGetVar(const String& var, String* pContent, CInvokerParam param = {}) const;
+  bool TryGetVar(const String& var, Stream& out, CInvokerParam param = {}) const;
 
   #pragma endregion
 

@@ -67,7 +67,7 @@ $DAT >>arduino_homekit_server.cpp<< 08 Okt 2024  09:39:31 - (c) proDAD
 #define HOMEKIT_MDNS_PROTO       "tcp"//"_tcp"
 #define HOMEKIT_EVENT_QUEUE_SIZE 4 //original is 20
 //#define HOMEKIT_SOCKET_TIMEOUT   500 //milliseconds
-#define HOMEKIT_SOCKET_TIMEOUT   5000 //milliseconds
+#define HOMEKIT_SOCKET_TIMEOUT   9000 //milliseconds
 
 //#define TCP_DEFAULT_KEEPALIVE_IDLE_SEC          7200 // 2 hours
 //#define TCP_DEFAULT_KEEPALIVE_INTERVAL_SEC      75   // 75 sec
@@ -91,9 +91,9 @@ $DAT >>arduino_homekit_server.cpp<< 08 Okt 2024  09:39:31 - (c) proDAD
 #define TLV_DEBUG(values)
 #endif
 
-#define CLIENT_DEBUG(client, message, ...)  DEBUG("[Client %d] " message, client->socket, ##__VA_ARGS__)
+#define CLIENT_DEBUG(client, message, ...)  DEBUG(message, ##__VA_ARGS__)
 #define CLIENT_VERBOSE(client, message, ...)VERBOSE(message, ##__VA_ARGS__)
-#define CLIENT_ERROR(client, message, ...)  ERROR("[Client %d] " message, client->socket, ##__VA_ARGS__)
+#define CLIENT_ERROR(client, message, ...)  ERROR(message, ##__VA_ARGS__)
 //#define CLIENT_INFO(client, message, ...)   INFO("[Client %d] " message, client->socket, ##__VA_ARGS__)
 #define CLIENT_INFO(client, message, ...)   INFO(message, ##__VA_ARGS__)
 

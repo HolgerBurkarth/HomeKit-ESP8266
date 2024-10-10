@@ -1,20 +1,20 @@
 #pragma region Prolog
 /*******************************************************************
-$CRT 09 Okt 2024 : hb
+$CRT 10 Okt 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>HomeKit_Thermostat.cpp<< 10 Okt 2024  07:15:19 - (c) proDAD
+$DAT >>HomeKit_HeaterCooler.cpp<< 10 Okt 2024  16:47:17 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
 // Ignore Spelling:
 #pragma endregion
 #pragma region Includes
-#include <HomeKit_Thermostat.h>
+#include <HomeKit_HeaterCooler.h>
 
 namespace HBHomeKit
 {
-namespace Thermostat
+namespace HeaterCooler
 {
 #pragma endregion
 
@@ -66,59 +66,56 @@ public:
   #pragma region QueryNextMessage
   void QueryNextMessage(CMessageArgs& args) override
   {
-    const ECharacteristicFlags Flags = System->GetFlags();
-    const auto TargetState = System->GetTargetState();
     auto& Msg = args.Value;
-    float TargetTemperature = System->GetTargetTemperature();
-    float HeatingThresholdTemperature = System->GetHeatingThresholdTemperature();
-    float CoolingThresholdTemperature = System->GetCoolingThresholdTemperature();
-
-    switch(TargetState)
+    bool Active = System->GetActive();
+    
+    if(!Active)
     {
-      default:
-      case HOMEKIT_TARGET_HEATING_COOLING_STATE_OFF:
-        Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF;
-        break;
-
-      case HOMEKIT_TARGET_HEATING_COOLING_STATE_HEAT:
-        if(TargetTemperature > 0) 
-        {
-          if(mSensorInfo.Temperature < TargetTemperature)
-            Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT;
-        }
-        else if(HeatingThresholdTemperature > 0)
-        {
-          if(mSensorInfo.Temperature < HeatingThresholdTemperature)
-            Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT;
-        }
-        break;
-
-      case HOMEKIT_TARGET_HEATING_COOLING_STATE_COOL:
-        if(TargetTemperature > 0)
-        {
-          if(mSensorInfo.Temperature > TargetTemperature)
-            Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL;
-        }
-        else if(CoolingThresholdTemperature > 0)
-        {
-          if(mSensorInfo.Temperature > CoolingThresholdTemperature)
-            Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL;
-        }
-        break;
-
-      case HOMEKIT_TARGET_HEATING_COOLING_STATE_AUTO:
-        if(HeatingThresholdTemperature > 0)
-        {
-          if(mSensorInfo.Temperature < HeatingThresholdTemperature)
-            Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT;
-        }
-        if(CoolingThresholdTemperature > 0)
-        {
-          if(mSensorInfo.Temperature > CoolingThresholdTemperature)
-            Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL;
-        }
-        break;
+      Msg.HCState = HOMEKIT_CURRENT_HEATER_COOLER_STATE_INACTIVE;
     }
+    else
+    {
+      const auto TargetState = System->GetTargetState();
+      const float HeatingThresholdTemperature = System->GetHeatingThresholdTemperature();
+      const float CoolingThresholdTemperature = System->GetCoolingThresholdTemperature();
+
+      Msg.HCState = HOMEKIT_CURRENT_HEATER_COOLER_STATE_IDLE;
+
+      switch(TargetState)
+      {
+
+        case HOMEKIT_TARGET_HEATER_COOLER_STATE_HEAT:
+          if(HeatingThresholdTemperature > 0)
+          {
+            if(mSensorInfo.Temperature < HeatingThresholdTemperature)
+              Msg.HCState = HOMEKIT_CURRENT_HEATER_COOLER_STATE_HEATING;
+          }
+          break;
+
+        case HOMEKIT_TARGET_HEATER_COOLER_STATE_COOL:
+          if(CoolingThresholdTemperature > 0)
+          {
+            if(mSensorInfo.Temperature > CoolingThresholdTemperature)
+              Msg.HCState = HOMEKIT_CURRENT_HEATER_COOLER_STATE_COOLING;
+          }
+          break;
+
+        default:
+        case HOMEKIT_TARGET_HEATER_COOLER_STATE_AUTO:
+          if(HeatingThresholdTemperature > 0)
+          {
+            if(mSensorInfo.Temperature < HeatingThresholdTemperature)
+              Msg.HCState = HOMEKIT_CURRENT_HEATER_COOLER_STATE_HEATING;
+          }
+          if(CoolingThresholdTemperature > 0)
+          {
+            if(mSensorInfo.Temperature > CoolingThresholdTemperature)
+              Msg.HCState = HOMEKIT_CURRENT_HEATER_COOLER_STATE_COOLING;
+          }
+          break;
+      }
+    }
+    
 
     //Serial.printf("HCState = %d\n", Msg.HCState.value_or(HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF));
     args.Handled = true;
@@ -145,7 +142,7 @@ public:
     */
 
     {
-      auto HCState = Msg.HCState.value_or(HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF);
+      auto HCState = Msg.HCState.value_or(HOMEKIT_CURRENT_HEATER_COOLER_STATE_INACTIVE);
       if(!mLastMessage.HCState || HCState != *mLastMessage.HCState)
       {
         System->SetCurrentState(HCState);
@@ -255,14 +252,12 @@ public:
           return;
 
         mInfo.Flags = System->GetFlags();
-
         mInfo.CurrentState = System->GetCurrentState();
         mInfo.DisplayUnit = System->GetDisplayUnit();
         mInfo.TargetState = System->GetTargetState();
-        mInfo.TargetHumidity = System->GetTargetHumidity();
         mInfo.CoolingThresholdTemperature = System->GetCoolingThresholdTemperature();
         mInfo.HeatingThresholdTemperature = System->GetHeatingThresholdTemperature();
-        mInfo.TargetTemperature = System->GetTargetTemperature();
+        mInfo.Active = System->GetActive();
         
         mNotify(mInfo);
         mInfo.Changed = false;
@@ -285,7 +280,7 @@ public:
   #pragma region QueryNextMessage
   void QueryNextMessage(CMessageArgs& args) override
   {
-    auto CurrentState = args.Value.HCState.value_or(HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF);
+    auto CurrentState = args.Value.HCState.value_or(HOMEKIT_CURRENT_HEATER_COOLER_STATE_INACTIVE);
     if(mInfo.CurrentState != CurrentState)
     {
       mInfo.CurrentState = CurrentState;
@@ -721,16 +716,9 @@ function UIUpdateCurrentState(value)
 {
   SetElementInnerHTML('CurrentState', value);
 }
-
-function UIUpdateTargetTemperature(value)
+function UIUpdateActive(value)
 {
-  value = parseFloat(value).toFixed(2) + "&nbsp;\u00B0C";
-  SetElementInnerHTML('TargetTemp', value);
-}
-function UIUpdateTargetHumidity(value)
-{
-  value = parseFloat(value).toFixed(2) + "&nbsp;%";
-  SetElementInnerHTML('TargetHum', value);
+  SetElementInnerHTML('Active', value);
 }
 
 function UIUpdateCoolingThresholdTemperature(value)
@@ -754,14 +742,6 @@ function SetTargetState(value)
 {
   ForSetVar('TARGET_STATE', value, responseText => UIUpdateTargetState(responseText) );
 }
-function SetTargetTemperature(value)
-{
-  ForSetVar('TARGET_TEMPERATURE', value, responseText => UIUpdateTargetTemperature(responseText) );
-}
-function SetTargetHumidity(value)
-{
-  ForSetVar('TARGET_HUMIDITY', value, responseText => UIUpdateTargetHumidity(responseText) );
-}
 function SetCoolingThresholdTemperature(value)
 {
   ForSetVar('COOLING_THRESHOLD_TEMPERATURE', value, responseText => UIUpdateCoolingThresholdTemperature(responseText) );
@@ -769,6 +749,10 @@ function SetCoolingThresholdTemperature(value)
 function SetHeatingThresholdTemperature(value)
 {
   ForSetVar('HEATING_THRESHOLD_TEMPERATURE', value, responseText => UIUpdateHeatingThresholdTemperature(responseText) );
+}
+function SetActive(value)
+{
+  ForSetVar('ACTIVE', value, responseText => UIUpdateActive(responseText) );
 }
 
 
@@ -779,11 +763,9 @@ function Update()
   ForVar('HUMIDITY',    responseText => UIUpdateHumidity(responseText) );
   ForVar('TARGET_STATE', responseText => UIUpdateTargetState(responseText) );
   ForVar('CURRENT_STATE', responseText => UIUpdateCurrentState(responseText) );
-  ForVar('TARGET_TEMPERATURE', responseText => UIUpdateTargetTemperature(responseText) );
-  ForVar('TARGET_HUMIDITY', responseText => UIUpdateTargetHumidity(responseText) );
   ForVar('COOLING_THRESHOLD_TEMPERATURE', responseText => UIUpdateCoolingThresholdTemperature(responseText) );
   ForVar('HEATING_THRESHOLD_TEMPERATURE', responseText => UIUpdateHeatingThresholdTemperature(responseText) );
-
+  ForVar('ACTIVE', responseText => UIUpdateActive(responseText) );
 
 }
 
@@ -873,34 +855,25 @@ CTextEmitter HomeKit_HtmlBody()
 
 <table class='entrytab'>
 <tr>
+  <th>Active</th>
+  <td>
+    {ACTION_BUTTON:SetActive('active'):ACTIVE}
+    {ACTION_BUTTON:SetActive('inactive'):INACTIVE}
+  </td>
+</tr>
+<tr>
   <th>Target State</th>
   <td>
-    {ACTION_BUTTON:SetTargetState('off'):OFF}
     {ACTION_BUTTON:SetTargetState('heat'):HEAT}
     {ACTION_BUTTON:SetTargetState('cool'):COOL}
     {ACTION_BUTTON:SetTargetState('auto'):AUTO}
   </td>
 </tr>
 <tr>
-  <th>Target Temperature</th>
-  <td>
-    {ACTION_BUTTON:SetTargetTemperature('15'):15&deg;C}
-    {ACTION_BUTTON:SetTargetTemperature('25'):25&deg;C}
-    {ACTION_BUTTON:SetTargetTemperature('35'):35&deg;C}
-  </td>
-</tr>
-<tr>
-  <th>Target Humidity</th>
-  <td>
-    {ACTION_BUTTON:SetTargetHumidity('30'):30%}
-    {ACTION_BUTTON:SetTargetHumidity('60'):60%}
-  </td>
-</tr>
-<tr>
   <th>Heating Threshold Temperature</th>
   <td>
     {ACTION_BUTTON:SetHeatingThresholdTemperature('15'):15&deg;C}
-    {ACTION_BUTTON:SetHeatingThresholdTemperature('24'):24&deg;C}
+    {ACTION_BUTTON:SetHeatingThresholdTemperature('30'):30&deg;C}
   </td>
 </tr>
 <tr>
@@ -917,18 +890,16 @@ CTextEmitter HomeKit_HtmlBody()
 <table class='entrytab'>
 <caption>HomeKit States</caption>
 <tr>
-  <th>Current Temperature</th> <td><div id="CurTemp">...</div></td>
-  <th>Current Humidity</th> <td><div id="CurHum">...</div></td>
+  <th>Active</th> <td><div id="Active">...</div></td>
 </tr>
-
-<tr>
-  <th>Target Temperature</th> <td><div id="TargetTemp">...</div></td>
-  <th>Target Humidity</th> <td><div id="TargetHum">...</div></td>
-</tr>
-
 <tr>
   <th>Target State</th> <td><div id="TargetState">...</div></td>
   <th>Current State</th> <td><div id="CurrentState">...</div></td>
+</tr>
+
+<tr>
+  <th>Current Temperature</th> <td><div id="CurTemp">...</div></td>
+  <th>Current Humidity</th> <td><div id="CurHum">...</div></td>
 </tr>
 
 <tr>
@@ -952,7 +923,7 @@ CTextEmitter HomeKit_HtmlBody()
 #pragma region +Install and Setup
 
 #pragma region InstallVarsAndCmds
-void InstallVarsAndCmds(CController& c, CThermostatService& svr, CHost& host)
+void InstallVarsAndCmds(CController& c, CHeaterCoolerService& svr, CHost& host)
 {
   c
     #pragma region TARGET_STATE
@@ -960,38 +931,33 @@ void InstallVarsAndCmds(CController& c, CThermostatService& svr, CHost& host)
       {
         if(p.Args[0] != nullptr)
         {
-          HOMEKIT_TARGET_HEATING_COOLING_STATE State{};
+          HOMEKIT_TARGET_HEATER_COOLER_STATE State{};
           const char* Arg0Text = static_value_cast<const char*>(*p.Args[0]);
 //Serial.printf("Set Target State: \"%s\"\n", Arg0Text);
-          if(strcmp_P(Arg0Text, PSTR("off")) == 0)
-            State = HOMEKIT_TARGET_HEATING_COOLING_STATE_OFF;
-          else if(strcmp_P(Arg0Text, PSTR("heat")) == 0)
-            State = HOMEKIT_TARGET_HEATING_COOLING_STATE_HEAT;
+          if(strcmp_P(Arg0Text, PSTR("heat")) == 0)
+            State = HOMEKIT_TARGET_HEATER_COOLER_STATE_HEAT;
           else if(strcmp_P(Arg0Text, PSTR("cool")) == 0)
-            State = HOMEKIT_TARGET_HEATING_COOLING_STATE_COOL;
+            State = HOMEKIT_TARGET_HEATER_COOLER_STATE_COOL;
           else if(strcmp_P(Arg0Text, PSTR("auto")) == 0)
-            State = HOMEKIT_TARGET_HEATING_COOLING_STATE_AUTO;
+            State = HOMEKIT_TARGET_HEATER_COOLER_STATE_AUTO;
           else
             ERROR("Unknown target state: \"%s\"", Arg0Text);
 
-          modify_value_and_notify(&svr.TargetHeatingCoolingState, State);
+          modify_value_and_notify(&svr.TargetHeaterCoolerState, State);
         }
 
-        return [State = static_value_cast<HOMEKIT_TARGET_HEATING_COOLING_STATE>(&svr.TargetHeatingCoolingState)](Stream& out)
+        return [State = static_value_cast<HOMEKIT_TARGET_HEATER_COOLER_STATE>(&svr.TargetHeaterCoolerState)](Stream& out)
           {
             switch(State)
             {
-              default:
-              case HOMEKIT_TARGET_HEATING_COOLING_STATE_OFF:
-                out << F("off");
-                break;
-              case HOMEKIT_TARGET_HEATING_COOLING_STATE_HEAT:
+              case HOMEKIT_TARGET_HEATER_COOLER_STATE_HEAT:
                 out << F("heat");
                 break;
-              case HOMEKIT_TARGET_HEATING_COOLING_STATE_COOL:
+              case HOMEKIT_TARGET_HEATER_COOLER_STATE_COOL:
                 out << F("cool");
                 break;
-              case HOMEKIT_TARGET_HEATING_COOLING_STATE_AUTO:
+              default:
+              case HOMEKIT_TARGET_HEATER_COOLER_STATE_AUTO:
                 out << F("auto");
                 break;
             }
@@ -1005,33 +971,38 @@ void InstallVarsAndCmds(CController& c, CThermostatService& svr, CHost& host)
       {
         if(p.Args[0] != nullptr)
         {
-          HOMEKIT_CURRENT_HEATING_COOLING_STATE State{};
+          HOMEKIT_CURRENT_HEATER_COOLER_STATE State{};
           const char* Arg0Text = static_value_cast<const char*>(*p.Args[0]);
-          if(strcmp_P(Arg0Text, PSTR("off")) == 0)
-            State = HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF;
-          else if(strcmp_P(Arg0Text, PSTR("heat")) == 0)
-            State = HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT;
-          else if(strcmp_P(Arg0Text, PSTR("cool")) == 0)
-            State = HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL;
+          if(strcmp_P(Arg0Text, PSTR("inactive")) == 0)
+            State = HOMEKIT_CURRENT_HEATER_COOLER_STATE_INACTIVE;
+          else if(strcmp_P(Arg0Text, PSTR("idle")) == 0)
+            State = HOMEKIT_CURRENT_HEATER_COOLER_STATE_IDLE;
+          else if(strcmp_P(Arg0Text, PSTR("heating")) == 0)
+            State = HOMEKIT_CURRENT_HEATER_COOLER_STATE_HEATING;
+          else if(strcmp_P(Arg0Text, PSTR("cooling")) == 0)
+            State = HOMEKIT_CURRENT_HEATER_COOLER_STATE_COOLING;
           else
             ERROR("Unknown current state: \"%s\"", Arg0Text);
 
-          modify_value_and_notify(&svr.CurrentHeatingCoolingState, State);
+          modify_value_and_notify(&svr.CurrentHeaterCoolerState, State);
         }
 
-        return [State = static_value_cast<HOMEKIT_CURRENT_HEATING_COOLING_STATE>(&svr.CurrentHeatingCoolingState)](Stream& out)
+        return [State = static_value_cast<HOMEKIT_CURRENT_HEATER_COOLER_STATE>(&svr.CurrentHeaterCoolerState)](Stream& out)
           {
             switch(State)
             {
               default:
-              case HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF:
-                out << F("off");
+              case HOMEKIT_CURRENT_HEATER_COOLER_STATE_INACTIVE:
+                out << F("inactive");
                 break;
-              case HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT:
-                out << F("heat");
+              case HOMEKIT_CURRENT_HEATER_COOLER_STATE_IDLE:
+                out << F("idle");
                 break;
-              case HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL:
-                out << F("cool");
+              case HOMEKIT_CURRENT_HEATER_COOLER_STATE_HEATING:
+                out << F("heating");
+                break;
+              case HOMEKIT_CURRENT_HEATER_COOLER_STATE_COOLING:
+                out << F("cooling");
                 break;
             }
           };
@@ -1039,28 +1010,35 @@ void InstallVarsAndCmds(CController& c, CThermostatService& svr, CHost& host)
 
     #pragma endregion
 
-    #pragma region TARGET_TEMPERATURE
-    .SetVar("TARGET_TEMPERATURE", [&](auto p)
+    #pragma region ACTIVE
+    .SetVar("ACTIVE", [&](auto p)
       {
         if(p.Args[0] != nullptr)
         {
-          float Temp = convert_value<float>(*p.Args[0]);
-          modify_value_and_notify(&svr.TargetTemperature, Temp);
+          HOMEKIT_CHARACTERISTIC_STATUS State{};
+          const char* Arg0Text = static_value_cast<const char*>(*p.Args[0]);
+          if(strcmp_P(Arg0Text, PSTR("inactive")) == 0)
+            State = HOMEKIT_STATUS_INACTIVE;
+          else if(strcmp_P(Arg0Text, PSTR("active")) == 0)
+            State = HOMEKIT_STATUS_ACTIVE;
+          else
+            ERROR("Unknown current state: \"%s\"", Arg0Text);
+          modify_value_and_notify(&svr.ActiveState, State);
         }
-        return MakeTextEmitter(svr.TargetTemperature);
-      })
 
-    #pragma endregion
-
-    #pragma region TARGET_HUMIDITY
-    .SetVar("TARGET_HUMIDITY", [&](auto p)
-      {
-        if(p.Args[0] != nullptr)
-        {
-          float Temp = convert_value<float>(*p.Args[0]);
-          modify_value_and_notify(&svr.TargetHumidity, Temp);
-        }
-        return MakeTextEmitter(svr.TargetHumidity);
+        return [State = static_value_cast<HOMEKIT_CHARACTERISTIC_STATUS>(&svr.ActiveState)](Stream& out)
+          {
+            switch(State)
+            {
+              default:
+              case HOMEKIT_STATUS_INACTIVE:
+                out << F("inactive");
+                break;
+              case HOMEKIT_STATUS_ACTIVE:
+                out << F("active");
+                break;
+            }
+          };
       })
 
     #pragma endregion
@@ -1256,6 +1234,6 @@ void AddMenuItems(CController& c)
 
 
 #pragma region Epilog
-} // namespace Thermostat
+} // namespace HeaterCooler
 } // namespace HBHomeKit
 #pragma endregion

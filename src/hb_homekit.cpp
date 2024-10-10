@@ -3,7 +3,7 @@
 $CRT 10 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.cpp<< 09 Okt 2024  06:33:50 - (c) proDAD
+$DAT >>hb_homekit.cpp<< 10 Okt 2024  06:23:37 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -117,6 +117,7 @@ class CStreamPassThru : public StreamNull
 {
 public:
   using CTargetWriter = std::function<size_t(const uint8_t* buffer, size_t size)>;
+  size_t Size{};
 private:
   CTargetWriter mWriter;
 public:
@@ -124,12 +125,19 @@ public:
 
   virtual size_t write(uint8_t v) override
   {
-    return mWriter(&v, 1);
+    auto Sz = mWriter(&v, 1);
+    Size += Sz;
+    return Sz;
   }
 
   virtual size_t write(const uint8_t* buffer, size_t size) override
   {
-    return mWriter(buffer, size);
+    if(size == 0)
+      return 0; // Special case, no "" may be sent, because this represents the end of the transmission for the web server.
+
+    auto Sz = mWriter(buffer, size);
+    Size += Sz;
+    return Sz;
   }
 
 };
@@ -1379,6 +1387,15 @@ bool CController::TryGetVar(const String& var, String* pContent, CInvokerParam p
   return true;
 }
 
+bool CController::TryGetVar(const String& var, Stream& out, CInvokerParam param) const
+{
+  auto It = mVars.find(var);
+  if(It == mVars.end())
+    return false;
+  out << It->second(param);
+  return true;
+}
+
 #pragma endregion
 
 #pragma region Setup
@@ -1409,7 +1426,7 @@ void CController::Setup()
   WebServer.addHook([this](const String& method, const String& url, WiFiClient* client, ESP8266WebServer::ContentTypeFunction contentType)
     {
       homekit_touch_http_request();
-      //Serial.printf("Hook  Method: %s  URL: %s  From: %s\n", method.c_str(), url.c_str(), client->remoteIP().toString().c_str());
+//Serial.printf("Hook  Method: %s  URL: %s  From: %s\n", method.c_str(), url.c_str(), client->remoteIP().toString().c_str());
 
       #if 0
       Serial.printf("Hook  Method: %s  URL: %s  From: %s\n"
@@ -1466,6 +1483,12 @@ int CController::IndexOfMenuURI(const char* uri) const
 #pragma region SendHtmlPage
 void CController::SendHtmlPage()
 {
+  uint32_t StartMS = millis();
+  WebServer.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  WebServer.sendHeader("Pragma", "no-cache");
+  WebServer.sendHeader("Expires", "-1");
+
+
   // use HTTP/1.1 Chunked response to avoid building a huge temporary string
   if(WebServer.chunkedResponseModeStart(200, "text/html"))
   {
@@ -1479,7 +1502,8 @@ void CController::SendHtmlPage()
     );
     SendHtmlPage(HtmlOutStream);
     WebServer.chunkedResponseFinalize();
-    INFO_HEAP();
+    StartMS = millis() - StartMS;
+    VERBOSE("HP Sent: %d bytes | Free heap: %d bytes | %d ms", HtmlOutStream.Size, system_get_free_heap_size(), StartMS);
   }
   else
   {
@@ -1785,6 +1809,8 @@ void CController::PerformWebServerVarRequest()
   {
     WebServer.send(404, "text/plain", "Variable Not found");
 
+    ResultText.reserve(256);
+
     for(ArgIndex = 0; ArgIndex < WebServer.args(); ++ArgIndex)
     {
       const String& Name = WebServer.argName(ArgIndex);
@@ -1812,28 +1838,27 @@ void CController::PerformWebServerVarRequest()
       Param.Args[0] = &Arg0;
     }
 
-    TryGetVar(Name, &ResultText, Param);
-
-    #if 0
-    if(ArgContent.isEmpty())
+    // use HTTP/1.1 Chunked response to avoid building a huge temporary string
+    if(WebServer.chunkedResponseModeStart(200, "text/html"))
     {
-      VERBOSE("HTTP_GET /var:%s -> \"%.60s\""
-        , Name.c_str()
-        , ResultText.c_str()
+      CStreamPassThru HtmlOutStream
+      (
+        [&](const uint8_t* buffer, size_t size) -> size_t
+        {
+          //Serial.printf("%02x ", buffer[0]);
+          WebServer.sendContent_P(reinterpret_cast<const char*>(buffer), size);
+          return size;
+        }
       );
+      TryGetVar(Name, HtmlOutStream, Param);
+//Serial.printf("var %s %d\n", Name.c_str(), HtmlOutStream.Size);
+      WebServer.chunkedResponseFinalize();
     }
     else
     {
-      VERBOSE("HTTP_GET /var:%s=\"%s\" -> \"%.60s\""
-        , Name.c_str()
-        , ArgContent.c_str()
-        , ResultText.c_str()
-      );
+      TryGetVar(Name, &ResultText, Param);
+      WebServer.send(200, "text/plain", ResultText);
     }
-
-    #endif // 0
-
-    WebServer.send(200, "text/plain", ResultText);
   }
 }
 #pragma endregion
@@ -2433,6 +2458,7 @@ void CHomeKit::ResetPairing(bool reboot)
 */
 bool CHomeKit::Setup()
 {
+  homekit_touch_http_request(); // set maximum CPU frequency
   Controller.WiFiCtrl.ConnectOrDie();
 
   SyncDateTime();
