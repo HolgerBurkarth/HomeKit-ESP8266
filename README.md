@@ -42,8 +42,10 @@ The documentation of the types, methods and functions is included in the source 
     - [Sensor.h](./examples/Sensor/Sensor.h) - Example of a sensor (temperature, humidity, etc.)
 - [HomeKit_Switch.h](./src/HomeKit_Switch.h) - Framework for a switcher
     - [Switch.h](./examples/Switch/Switch.h) - Example of a switcher
-- [HomeKit_HeaterCooler.h](./src/HomeKit_HeaterCooler.h) - Framework for a header and cooler
+- [HomeKit_HeaterCooler.h](./src/HomeKit_HeaterCooler.h) - Framework for a heater and cooler
     - [Heater.h](./examples/Heater/Heater.h) - Example of a header
+- [HomeKit_Thermostat.h](./src/HomeKit_Thermostat.h) - Framework for a thermostat
+    - [Thermostat.h](./examples/Thermostat/Thermostat.h) - Example of a thermostat as a heater
 
 ---
 
@@ -115,6 +117,16 @@ Read more: [Garage Door Opener Project](./examples/GarageDoor/README.md)
 
 ![Sensor](./media/en-hp-sensor02.jpg)
 
+### 3. Heater
+
+![Sensor](./media/en-hp-heater01.jpg)
+
+
+### 4. Thermostat (Temperature, Humidity)
+
+![Sensor](./media/en-hp-thermostat01.jpg)
+
+
 ---
 
 ## Further technical details
@@ -148,7 +160,6 @@ Read more: [Garage Door Opener Project](./examples/GarageDoor/README.md)
 * Debug level: `None` (for less memory usage)
 * VTables: `Flash` (may not matter)
 * Erase Flash: select `All Flash Contents` on first upload
-* CPU frequency: `160MHz` (must)
 
 ---
 
@@ -165,6 +176,9 @@ Read more: [Garage Door Opener Project](./examples/GarageDoor/README.md)
 
 
 ### Change Log
+
+#### v2.0.3 (2024-10-11)
+* Support and examples for a heater/cooler/thermostat (temperature, humidity, etc.)
 
 #### v2.0.2 (2024-10-08)
 * Support and examples for a sensor (temperature, humidity, etc.)

@@ -1023,7 +1023,7 @@ i {
 }
 
 .unit {
-  font-size: 0.7em;
+  font-size: 0.8em;
   color: #999;
 }
 
@@ -1790,6 +1790,7 @@ void CController::PerformWebServerRequest()
 #pragma region PerformWebServerVarRequest
 void CController::PerformWebServerVarRequest()
 {
+  uint32_t StartMS = millis();
   String ResultText;
   int ArgIndex;
 
@@ -1853,6 +1854,9 @@ void CController::PerformWebServerVarRequest()
       TryGetVar(Name, HtmlOutStream, Param);
 //Serial.printf("var %s %d\n", Name.c_str(), HtmlOutStream.Size);
       WebServer.chunkedResponseFinalize();
+      StartMS = millis() - StartMS;
+      if(StartMS > 200)
+      VERBOSE("VAR %s Sent: %d bytes | Free heap: %d bytes | %d ms", Name.c_str(), HtmlOutStream.Size, system_get_free_heap_size(), StartMS);
     }
     else
     {
