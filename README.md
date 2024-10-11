@@ -42,6 +42,8 @@ The documentation of the types, methods and functions is included in the source 
     - [Sensor.h](./examples/Sensor/Sensor.h) - Example of a sensor (temperature, humidity, etc.)
 - [HomeKit_Switch.h](./src/HomeKit_Switch.h) - Framework for a switcher
     - [Switch.h](./examples/Switch/Switch.h) - Example of a switcher
+- [HomeKit_HeaterCooler.h](./src/HomeKit_HeaterCooler.h) - Framework for a header and cooler
+    - [Heater.h](./examples/Heater/Heater.h) - Example of a header
 
 ---
 

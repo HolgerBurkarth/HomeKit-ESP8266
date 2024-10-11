@@ -653,8 +653,8 @@ Optional Characteristics:
 - ROTATION_SPEED
 - TEMPERATURE_DISPLAY_UNITS
 - SWING_MODE
-- COOLING_THRESHOLD_TEMPERATURE
-- HEATING_THRESHOLD_TEMPERATURE
+- COOLING_THRESHOLD_TEMPERATURE (This setting is made on the device)
+- HEATING_THRESHOLD_TEMPERATURE (This setting is made on the device)
 - LOCK_PHYSICAL_CONTROLS
 */
 #define HOMEKIT_SERVICE_HEATER_COOLER HOMEKIT_APPLE_UUID2("BC")
@@ -1034,7 +1034,10 @@ enum HOMEKIT_TEMPERATURE_DISPLAY_UNIT //: uint8_t
 #pragma endregion
 
 #pragma region HOMEKIT_DECLARE_CHARACTERISTIC_COOLING_THRESHOLD_TEMPERATURE
-// Cooling Threshold Temperature
+/* 
+* @param _dsc Description e.g: "Cooling Threshold Temperature"
+* @note This setting is made on the device.
+*/
 #define HOMEKIT_CHARACTERISTIC_COOLING_THRESHOLD_TEMPERATURE HOMEKIT_APPLE_UUID1("D")
 #define HOMEKIT_DECLARE_CHARACTERISTIC_COOLING_THRESHOLD_TEMPERATURE(_dsc, _value, ...) \
     .type = HOMEKIT_CHARACTERISTIC_COOLING_THRESHOLD_TEMPERATURE, \
@@ -1130,6 +1133,7 @@ enum HOMEKIT_TARGET_DOOR_STATE
 #pragma region HOMEKIT_DECLARE_CHARACTERISTIC_CURRENT_HEATING_COOLING_STATE
 enum HOMEKIT_CURRENT_HEATING_COOLING_STATE //: uint8_t
 {
+  HOMEKIT_CURRENT_HEATING_COOLING_STATE_UNDEF = -1, // Undefined - don't use
   HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF  = 0, // The Heater/Cooler is off
   HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT = 1, // The Heater is currently on
   HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL = 2, // The Cooler is currently on
@@ -1192,7 +1196,11 @@ enum HOMEKIT_CURRENT_HEATING_COOLING_STATE //: uint8_t
 #pragma endregion
 
 #pragma region HOMEKIT_DECLARE_CHARACTERISTIC_HEATING_THRESHOLD_TEMPERATURE
-// Heating Threshold Temperature
+/* 
+* @param _dsc Description e.g: "Heating Threshold Temperature"
+* @note This setting is made on the device.
+
+*/
 #define HOMEKIT_CHARACTERISTIC_HEATING_THRESHOLD_TEMPERATURE HOMEKIT_APPLE_UUID2("12")
 #define HOMEKIT_DECLARE_CHARACTERISTIC_HEATING_THRESHOLD_TEMPERATURE(_dsc, _value, ...) \
     .type = HOMEKIT_CHARACTERISTIC_HEATING_THRESHOLD_TEMPERATURE, \
@@ -1203,8 +1211,8 @@ enum HOMEKIT_CURRENT_HEATING_COOLING_STATE //: uint8_t
                  | homekit_permissions_paired_write \
                  | homekit_permissions_notify, \
     .value = HOMEKIT_FLOAT_(_value), \
-    .min_value = (const float[]) {0}, \
-    .max_value = (const float[]) {25}, \
+    .min_value = (const float[]) {10}, \
+    .max_value = (const float[]) {45}, \
     .min_step = (const float[]) {0.1}, \
     ##__VA_ARGS__
 
@@ -1499,6 +1507,7 @@ enum HOMEKIT_TARGET_HEATING_COOLING_STATE //: uint8_t
 #pragma region HOMEKIT_DECLARE_CHARACTERISTIC_ACTIVE
 enum HOMEKIT_CHARACTERISTIC_STATUS
 {
+  HOMEKIT_STATUS_UNDEF    = -1, // Undefined - don't use
   HOMEKIT_STATUS_INACTIVE = 0,
   HOMEKIT_STATUS_ACTIVE   = 1
 };
@@ -1524,6 +1533,7 @@ enum HOMEKIT_CHARACTERISTIC_STATUS
 #pragma region HOMEKIT_CURRENT_HEATER_COOLER_STATE
 enum HOMEKIT_CURRENT_HEATER_COOLER_STATE
 {
+  HOMEKIT_CURRENT_HEATER_COOLER_STATE_UNDEF = -1, // Undefined - don't use
   HOMEKIT_CURRENT_HEATER_COOLER_STATE_INACTIVE = 0,
   HOMEKIT_CURRENT_HEATER_COOLER_STATE_IDLE     = 1,
   HOMEKIT_CURRENT_HEATER_COOLER_STATE_HEATING  = 2,

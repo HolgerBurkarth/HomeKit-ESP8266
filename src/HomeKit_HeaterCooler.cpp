@@ -3,7 +3,7 @@
 $CRT 10 Okt 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>HomeKit_HeaterCooler.cpp<< 10 Okt 2024  16:47:17 - (c) proDAD
+$DAT >>HomeKit_HeaterCooler.cpp<< 11 Okt 2024  06:12:43 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -75,9 +75,12 @@ public:
     }
     else
     {
+      const auto Flags = System->GetFlags();
+      const bool CanHeating = (Flags & ECharacteristicFlags::HeatingThreshold);
+      const bool CanCooling = (Flags & ECharacteristicFlags::CoolingThreshold);
       const auto TargetState = System->GetTargetState();
-      const float HeatingThresholdTemperature = System->GetHeatingThresholdTemperature();
-      const float CoolingThresholdTemperature = System->GetCoolingThresholdTemperature();
+      const auto HeatingThresholdTemperature = CanHeating ? System->GetHeatingThresholdTemperature() : COptionalFloat{};
+      const auto CoolingThresholdTemperature = CanCooling ? System->GetCoolingThresholdTemperature() : COptionalFloat{};
 
       Msg.HCState = HOMEKIT_CURRENT_HEATER_COOLER_STATE_IDLE;
 
@@ -85,31 +88,31 @@ public:
       {
 
         case HOMEKIT_TARGET_HEATER_COOLER_STATE_HEAT:
-          if(HeatingThresholdTemperature > 0)
+          if(HeatingThresholdTemperature)
           {
-            if(mSensorInfo.Temperature < HeatingThresholdTemperature)
+            if(mSensorInfo.Temperature < *HeatingThresholdTemperature)
               Msg.HCState = HOMEKIT_CURRENT_HEATER_COOLER_STATE_HEATING;
           }
           break;
 
         case HOMEKIT_TARGET_HEATER_COOLER_STATE_COOL:
-          if(CoolingThresholdTemperature > 0)
+          if(CoolingThresholdTemperature)
           {
-            if(mSensorInfo.Temperature > CoolingThresholdTemperature)
+            if(mSensorInfo.Temperature > *CoolingThresholdTemperature)
               Msg.HCState = HOMEKIT_CURRENT_HEATER_COOLER_STATE_COOLING;
           }
           break;
 
         default:
         case HOMEKIT_TARGET_HEATER_COOLER_STATE_AUTO:
-          if(HeatingThresholdTemperature > 0)
+          if(HeatingThresholdTemperature)
           {
-            if(mSensorInfo.Temperature < HeatingThresholdTemperature)
+            if(mSensorInfo.Temperature < *HeatingThresholdTemperature)
               Msg.HCState = HOMEKIT_CURRENT_HEATER_COOLER_STATE_HEATING;
           }
-          if(CoolingThresholdTemperature > 0)
+          if(CoolingThresholdTemperature)
           {
-            if(mSensorInfo.Temperature > CoolingThresholdTemperature)
+            if(mSensorInfo.Temperature > *CoolingThresholdTemperature)
               Msg.HCState = HOMEKIT_CURRENT_HEATER_COOLER_STATE_COOLING;
           }
           break;
@@ -119,6 +122,14 @@ public:
 
     //Serial.printf("HCState = %d\n", Msg.HCState.value_or(HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF));
     args.Handled = true;
+  }
+  #pragma endregion
+
+  #pragma region SetCurrentState
+  void SetCurrentState(CCurrentStateArgs& args) override
+  {
+    INFO("SetCurrentState: %s", to_string(args.Value));
+    System->SetCurrentState(args.Value);
   }
   #pragma endregion
 
@@ -145,7 +156,8 @@ public:
       auto HCState = Msg.HCState.value_or(HOMEKIT_CURRENT_HEATER_COOLER_STATE_INACTIVE);
       if(!mLastMessage.HCState || HCState != *mLastMessage.HCState)
       {
-        System->SetCurrentState(HCState);
+        CCurrentStateArgs Args = HCState;
+        Super->SetCurrentState(Args);
         mLastMessage.HCState = HCState;
       }
     }
@@ -258,7 +270,7 @@ public:
         mInfo.CoolingThresholdTemperature = System->GetCoolingThresholdTemperature();
         mInfo.HeatingThresholdTemperature = System->GetHeatingThresholdTemperature();
         mInfo.Active = System->GetActive();
-        
+
         mNotify(mInfo);
         mInfo.Changed = false;
       });
@@ -276,20 +288,6 @@ public:
   }
 
   #pragma endregion
-
-  #pragma region QueryNextMessage
-  void QueryNextMessage(CMessageArgs& args) override
-  {
-    auto CurrentState = args.Value.HCState.value_or(HOMEKIT_CURRENT_HEATER_COOLER_STATE_INACTIVE);
-    if(mInfo.CurrentState != CurrentState)
-    {
-      mInfo.CurrentState = CurrentState;
-      mInfo.Changed = true;
-    }
-  }
-  #pragma endregion
-
-
 
 
   //END Override Methods
@@ -873,14 +871,14 @@ CTextEmitter HomeKit_HtmlBody()
   <th>Heating Threshold Temperature</th>
   <td>
     {ACTION_BUTTON:SetHeatingThresholdTemperature('15'):15&deg;C}
-    {ACTION_BUTTON:SetHeatingThresholdTemperature('30'):30&deg;C}
+    {ACTION_BUTTON:SetHeatingThresholdTemperature('28'):28&deg;C}
   </td>
 </tr>
 <tr>
   <th>Cooling Threshold Temperature</th>
   <td>
-    {ACTION_BUTTON:SetCoolingThresholdTemperature('20'):20&deg;C}
-    {ACTION_BUTTON:SetCoolingThresholdTemperature('30'):30&deg;C}
+    {ACTION_BUTTON:SetCoolingThresholdTemperature('16'):16&deg;C}
+    {ACTION_BUTTON:SetCoolingThresholdTemperature('27'):27&deg;C}
   </td>
 </tr>
 </table>
@@ -1230,6 +1228,21 @@ void AddMenuItems(CController& c)
 
 //END Install and Setup
 #pragma endregion
+
+#pragma region to_string
+const char* to_string(HOMEKIT_CURRENT_HEATER_COOLER_STATE state)
+{
+  switch(state)
+  {
+    case HOMEKIT_CURRENT_HEATER_COOLER_STATE_INACTIVE: return "Inactive";
+    case HOMEKIT_CURRENT_HEATER_COOLER_STATE_IDLE: return "Idle";
+    case HOMEKIT_CURRENT_HEATER_COOLER_STATE_HEATING: return "Heating";
+    case HOMEKIT_CURRENT_HEATER_COOLER_STATE_COOLING: return "Cooling";
+    default: return "Unknown";
+  }
+}
+#pragma endregion
+
 
 
 
