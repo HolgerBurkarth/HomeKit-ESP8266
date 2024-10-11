@@ -3,7 +3,7 @@
 $CRT 18 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_action_ui.cpp<< 03 Okt 2024  15:58:51 - (c) proDAD
+$DAT >>hb_action_ui.cpp<< 11 Okt 2024  09:43:46 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -264,11 +264,19 @@ const Unit_s = '<span class="unit">s</span>';
 function HideElement(idOrHd, hide)
 {
   var element = (typeof idOrHd === "string") ? document.getElementById(idOrHd) : idOrHd;
+  if(typeof hide === "string") hide = hide.toLowerCase() === "true";
   if(element) element.style.display = hide ? "none" : "block";
+}
+function VisibleElement(idOrHd, visible)
+{
+  var element = (typeof idOrHd === "string") ? document.getElementById(idOrHd) : idOrHd;
+  if(typeof visible === "string") visible = visible.toLowerCase() === "true";
+  if(element) element.style.display = visible ? "block" : "none";
 }
 function DisableElement(idOrHd, disable)
 {
   var element = (typeof idOrHd === "string") ? document.getElementById(idOrHd) : idOrHd;
+  if(typeof disable === "string") disable = disable.toLowerCase() === "true";
   if(element) element.disabled = disable;
 }
 function SetElementInnerHTML(idOrHd, text)
@@ -279,6 +287,7 @@ function SetElementInnerHTML(idOrHd, text)
 function SetElementChecked(idOrHd, value)
 {
   var element = (typeof idOrHd === "string") ? document.getElementById(idOrHd) : idOrHd;
+  if(typeof value === "string") value = value.toLowerCase() === "true";
   if(element) element.checked = value;
 }
 function LogDebug(txt)

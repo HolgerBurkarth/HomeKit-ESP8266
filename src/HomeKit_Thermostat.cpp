@@ -3,7 +3,7 @@
 $CRT 09 Okt 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>HomeKit_Thermostat.cpp<< 10 Okt 2024  07:15:19 - (c) proDAD
+$DAT >>HomeKit_Thermostat.cpp<< 11 Okt 2024  11:21:22 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -69,9 +69,9 @@ public:
     const ECharacteristicFlags Flags = System->GetFlags();
     const auto TargetState = System->GetTargetState();
     auto& Msg = args.Value;
-    float TargetTemperature = System->GetTargetTemperature();
-    float HeatingThresholdTemperature = System->GetHeatingThresholdTemperature();
-    float CoolingThresholdTemperature = System->GetCoolingThresholdTemperature();
+    const auto TargetTemperature = System->GetTargetTemperature();
+    const auto HeatingThresholdTemperature = System->GetHeatingThresholdTemperature();
+    const auto CoolingThresholdTemperature = System->GetCoolingThresholdTemperature();
 
     switch(TargetState)
     {
@@ -81,40 +81,51 @@ public:
         break;
 
       case HOMEKIT_TARGET_HEATING_COOLING_STATE_HEAT:
-        if(TargetTemperature > 0) 
+        if(TargetTemperature) 
         {
-          if(mSensorInfo.Temperature < TargetTemperature)
+          if(mSensorInfo.Temperature < *TargetTemperature)
             Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT;
         }
-        else if(HeatingThresholdTemperature > 0)
+        else if(HeatingThresholdTemperature)
         {
-          if(mSensorInfo.Temperature < HeatingThresholdTemperature)
+          if(mSensorInfo.Temperature < *HeatingThresholdTemperature)
             Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT;
         }
         break;
 
       case HOMEKIT_TARGET_HEATING_COOLING_STATE_COOL:
-        if(TargetTemperature > 0)
+        if(TargetTemperature)
         {
-          if(mSensorInfo.Temperature > TargetTemperature)
+          if(mSensorInfo.Temperature > *TargetTemperature)
             Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL;
         }
-        else if(CoolingThresholdTemperature > 0)
+        else if(CoolingThresholdTemperature)
         {
-          if(mSensorInfo.Temperature > CoolingThresholdTemperature)
+          if(mSensorInfo.Temperature > *CoolingThresholdTemperature)
             Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL;
         }
         break;
 
       case HOMEKIT_TARGET_HEATING_COOLING_STATE_AUTO:
-        if(HeatingThresholdTemperature > 0)
+        if(HeatingThresholdTemperature)
         {
-          if(mSensorInfo.Temperature < HeatingThresholdTemperature)
+          if(mSensorInfo.Temperature < *HeatingThresholdTemperature)
             Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT;
         }
-        if(CoolingThresholdTemperature > 0)
+        else if(TargetTemperature)
         {
-          if(mSensorInfo.Temperature > CoolingThresholdTemperature)
+          if(mSensorInfo.Temperature < *TargetTemperature)
+            Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT;
+        }
+
+        if(CoolingThresholdTemperature)
+        {
+          if(mSensorInfo.Temperature > *CoolingThresholdTemperature)
+            Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL;
+        }
+        else if(TargetTemperature)
+        {
+          if(mSensorInfo.Temperature > *TargetTemperature)
             Msg.HCState = HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL;
         }
         break;
@@ -122,6 +133,21 @@ public:
 
     //Serial.printf("HCState = %d\n", Msg.HCState.value_or(HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF));
     args.Handled = true;
+  }
+  #pragma endregion
+
+  #pragma region SetCurrentState
+  void SetCurrentState(CCurrentStateArgs& args) override
+  {
+    INFO("SetCurrentState: %s", to_string(args.Value));
+    System->SetCurrentState(args.Value);
+  }
+  #pragma endregion
+
+  #pragma region OnTargetStateChanged
+  void OnTargetStateChanged(CTargetStateArgs& args) override
+  {
+    CorrectTargetState(args.Value);
   }
   #pragma endregion
 
@@ -143,17 +169,57 @@ public:
     * Never do this permanently, or external value changes
     * will be overwritten and cannot be processed.
     */
-
     {
       auto HCState = Msg.HCState.value_or(HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF);
       if(!mLastMessage.HCState || HCState != *mLastMessage.HCState)
       {
-        System->SetCurrentState(HCState);
+        CCurrentStateArgs Args = HCState;
+        Super->SetCurrentState(Args);
         mLastMessage.HCState = HCState;
       }
     }
   }
 
+  #pragma endregion
+
+  #pragma region CorrectTargetState
+  void CorrectTargetState(HOMEKIT_TARGET_HEATING_COOLING_STATE state)
+  {
+    const auto TargetState = state;
+    auto Flags = System->GetFlags();
+    const bool SupportsHeating = (Flags & ECharacteristicFlags::SupportsHeating);
+    const bool SupportsCooling = (Flags & ECharacteristicFlags::SupportsCooling);
+    HOMEKIT_TARGET_HEATING_COOLING_STATE NewState = TargetState;
+    switch(TargetState)
+    {
+      default:
+      case HOMEKIT_TARGET_HEATING_COOLING_STATE_OFF:
+        break;
+
+      case HOMEKIT_TARGET_HEATING_COOLING_STATE_HEAT:
+        if(!SupportsHeating)
+          NewState = HOMEKIT_TARGET_HEATING_COOLING_STATE_OFF;
+        break;
+
+      case HOMEKIT_TARGET_HEATING_COOLING_STATE_COOL:
+        if(!SupportsCooling)
+          NewState = HOMEKIT_TARGET_HEATING_COOLING_STATE_OFF;
+        break;
+
+      case HOMEKIT_TARGET_HEATING_COOLING_STATE_AUTO:
+        if(!SupportsHeating && SupportsCooling)
+          NewState = HOMEKIT_TARGET_HEATING_COOLING_STATE_COOL;
+        else if(SupportsHeating && !SupportsCooling)
+          NewState = HOMEKIT_TARGET_HEATING_COOLING_STATE_HEAT;
+        break;
+    }
+
+    if(NewState != TargetState)
+    {
+      INFO("TargetState corrected: %s", to_string(NewState));
+      System->SetTargetState(NewState);
+    }
+  }
   #pragma endregion
 
 };
@@ -255,15 +321,14 @@ public:
           return;
 
         mInfo.Flags = System->GetFlags();
-
         mInfo.CurrentState = System->GetCurrentState();
         mInfo.DisplayUnit = System->GetDisplayUnit();
         mInfo.TargetState = System->GetTargetState();
-        mInfo.TargetHumidity = System->GetTargetHumidity();
         mInfo.CoolingThresholdTemperature = System->GetCoolingThresholdTemperature();
         mInfo.HeatingThresholdTemperature = System->GetHeatingThresholdTemperature();
+        mInfo.TargetHumidity = System->GetTargetHumidity();
         mInfo.TargetTemperature = System->GetTargetTemperature();
-        
+
         mNotify(mInfo);
         mInfo.Changed = false;
       });
@@ -282,20 +347,6 @@ public:
 
   #pragma endregion
 
-  #pragma region QueryNextMessage
-  void QueryNextMessage(CMessageArgs& args) override
-  {
-    auto CurrentState = args.Value.HCState.value_or(HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF);
-    if(mInfo.CurrentState != CurrentState)
-    {
-      mInfo.CurrentState = CurrentState;
-      mInfo.Changed = true;
-    }
-  }
-  #pragma endregion
-
-
-
 
   //END Override Methods
   #pragma endregion
@@ -304,6 +355,47 @@ public:
 IUnit_Ptr MakeOnChangedUnit(uint32_t intervalMS, std::function<void(const CChangeInfo&)> func)
 {
   return std::make_shared<COnChangedUnit>(intervalMS, std::move(func));
+}
+
+//END COnChangedUnit
+#pragma endregion
+
+#pragma region COnStateChangedUnit - Implementation
+class COnStateChangedUnit : public CUnitBase
+{
+  using NotifyFunc = std::function<void(HOMEKIT_CURRENT_HEATING_COOLING_STATE)>;
+
+  #pragma region Fields
+  NotifyFunc  mNotify;
+
+  #pragma endregion
+
+  #pragma region Construction
+public:
+  COnStateChangedUnit(NotifyFunc&& func)
+    : mNotify(std::move(func))
+  {}
+
+  #pragma endregion
+
+  #pragma region Override Methods
+
+  #pragma region SetCurrentState
+  void SetCurrentState(CCurrentStateArgs& args) override
+  {
+    mNotify(args.Value);
+  }
+
+  #pragma endregion
+
+
+  //END Override Methods
+  #pragma endregion
+};
+
+IUnit_Ptr MakeOnStateChangedUnit(std::function<void(HOMEKIT_CURRENT_HEATING_COOLING_STATE)> func)
+{
+  return std::make_shared<COnStateChangedUnit>(std::move(func));
 }
 
 //END COnChangedUnit
@@ -793,6 +885,10 @@ window.addEventListener('load', (event) =>
 {
   Update();
 
+  ForVar('SUPPORTS_HEATING_THRESHOLD',  responseText => VisibleElement('HeatingThresholdTemperatureButtons', responseText) );
+  ForVar('SUPPORTS_COOLING_THRESHOLD',  responseText => VisibleElement('CoolingThresholdTemperatureButtons', responseText) );
+  ForVar('SUPPORTS_HUMIDITY_ACTOR',     responseText => VisibleElement('TargetHumidityButtons', responseText) );
+
   setInterval
   ( 
     function() 
@@ -885,25 +981,24 @@ CTextEmitter HomeKit_HtmlBody()
   <th>Target Temperature</th>
   <td>
     {ACTION_BUTTON:SetTargetTemperature('15'):15&deg;C}
-    {ACTION_BUTTON:SetTargetTemperature('25'):25&deg;C}
-    {ACTION_BUTTON:SetTargetTemperature('35'):35&deg;C}
+    {ACTION_BUTTON:SetTargetTemperature('28'):28&deg;C}
   </td>
 </tr>
-<tr>
+<tr id='TargetHumidityButtons'>
   <th>Target Humidity</th>
   <td>
     {ACTION_BUTTON:SetTargetHumidity('30'):30%}
     {ACTION_BUTTON:SetTargetHumidity('60'):60%}
   </td>
 </tr>
-<tr>
+<tr id='HeatingThresholdTemperatureButtons'>
   <th>Heating Threshold Temperature</th>
   <td>
     {ACTION_BUTTON:SetHeatingThresholdTemperature('15'):15&deg;C}
     {ACTION_BUTTON:SetHeatingThresholdTemperature('24'):24&deg;C}
   </td>
 </tr>
-<tr>
+<tr id='CoolingThresholdTemperatureButtons'>
   <th>Cooling Threshold Temperature</th>
   <td>
     {ACTION_BUTTON:SetCoolingThresholdTemperature('20'):20&deg;C}
@@ -917,6 +1012,11 @@ CTextEmitter HomeKit_HtmlBody()
 <table class='entrytab'>
 <caption>HomeKit States</caption>
 <tr>
+  <th>Current State</th> <td><div id="CurrentState">...</div></td>
+  <th>Target State</th> <td><div id="TargetState">...</div></td>
+</tr>
+
+<tr>
   <th>Current Temperature</th> <td><div id="CurTemp">...</div></td>
   <th>Current Humidity</th> <td><div id="CurHum">...</div></td>
 </tr>
@@ -927,14 +1027,8 @@ CTextEmitter HomeKit_HtmlBody()
 </tr>
 
 <tr>
-  <th>Target State</th> <td><div id="TargetState">...</div></td>
-  <th>Current State</th> <td><div id="CurrentState">...</div></td>
-</tr>
-
-<tr>
   <th>Cooling Threshold</th> <td><div id="CoolingTemp">...</div></td>
   <th>Heating Threshold</th> <td><div id="HeatingTemp">...</div></td>
-
 </tr>
 </table>
 
@@ -1192,6 +1286,34 @@ void InstallVarsAndCmds(CController& c, CThermostatService& svr, CHost& host)
 
     #pragma endregion
 
+    #pragma region SUPPORTS_HUMIDITY_ACTOR
+    .SetVar("SUPPORTS_HUMIDITY_ACTOR", [&svr](auto p)
+      {
+        auto Flags = svr.Flags;
+        return MakeTextEmitter(Flags & ECharacteristicFlags::HumidityActor);
+      })
+
+    #pragma endregion
+
+    #pragma region SUPPORTS_COOLING_THRESHOLD
+    .SetVar("SUPPORTS_COOLING_THRESHOLD", [&svr](auto p)
+      {
+        auto Flags = svr.Flags;
+        return MakeTextEmitter(Flags & ECharacteristicFlags::CoolingThreshold);
+      })
+
+    #pragma endregion
+
+    #pragma region SUPPORTS_HEATING_THRESHOLD
+    .SetVar("SUPPORTS_HEATING_THRESHOLD", [&svr](auto p)
+      {
+        auto Flags = svr.Flags;
+        return MakeTextEmitter(Flags & ECharacteristicFlags::HeatingThreshold);
+      })
+
+    #pragma endregion
+
+
   ;
 }
 #pragma endregion
@@ -1251,6 +1373,32 @@ void AddMenuItems(CController& c)
 #pragma endregion
 
 //END Install and Setup
+#pragma endregion
+
+#pragma region to_string
+const char* to_string(HOMEKIT_TARGET_HEATING_COOLING_STATE state)
+{
+  switch(state)
+  {
+    case HOMEKIT_TARGET_HEATING_COOLING_STATE_OFF: return "OFF";
+    case HOMEKIT_TARGET_HEATING_COOLING_STATE_HEAT: return "HEAT";
+    case HOMEKIT_TARGET_HEATING_COOLING_STATE_COOL: return "COOL";
+    case HOMEKIT_TARGET_HEATING_COOLING_STATE_AUTO: return "AUTO";
+    default: return "UNKNOWN";
+  }
+}
+
+const char* to_string(HOMEKIT_CURRENT_HEATING_COOLING_STATE state)
+{
+  switch(state)
+  {
+    case HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF: return "OFF";
+    case HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT: return "HEAT";
+    case HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL: return "COOL";
+    default: return "UNKNOWN";
+  }
+}
+
 #pragma endregion
 
 

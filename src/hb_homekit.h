@@ -3,7 +3,7 @@
 $CRT 09 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.h<< 09 Okt 2024  07:31:59 - (c) proDAD
+$DAT >>hb_homekit.h<< 11 Okt 2024  10:35:00 - (c) proDAD
 
 using namespace HBHomeKit;
 *******************************************************************/
@@ -1359,12 +1359,47 @@ inline CTextEmitter MakeTextEmitter(String&& text)
       if(!text.isEmpty())
         p << text;
     };
-
 }
+inline CTextEmitter MakeTextEmitter(const char* pText)
+{
+  return MakeTextEmitter(String(pText));
+}
+
 inline CTextEmitter MakeTextEmitter()
 {
   return [](Stream&) {};
 }
+
+inline CTextEmitter MakeTextEmitter(bool v)
+{
+  return [v](Stream& out)
+    {
+      out << (v ? "true" : "false");
+    };
+}
+
+inline CTextEmitter MakeTextEmitter(int32_t v)
+{
+  return [v](Stream& out)
+    {
+      out << v;
+    };
+}
+inline CTextEmitter MakeTextEmitter(uint32_t v)
+{
+  return [v](Stream& out)
+    {
+      out << v;
+    };
+}
+inline CTextEmitter MakeTextEmitter(float v)
+{
+  return [v](Stream& out)
+    {
+      out << v;
+    };
+}
+
 
 /* A TextEmitter is created by converting the argument into a string using to_string(),
 * followed by the return as a TextEmitter. It is crucial that a check is made at
@@ -4194,6 +4229,7 @@ CTextEmitter ActionUI_CSS();
 *  param idOrHd : id or HTMLElement: e.g: 'myId' or document.getElementById('myId')
 *
 * Functions:
+*  VisibleElement(idOrHd, hide)
 *  HideElement(idOrHd, hide)
 *  DisableElement(idOrHd, disable)
 *  SetElementInnerHTML(idOrHd, text)

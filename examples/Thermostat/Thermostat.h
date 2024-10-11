@@ -3,7 +3,7 @@
 $CRT 11 Okt 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>Heater.h<< 11 Okt 2024  07:47:03 - (c) proDAD
+$DAT >>Thermostat.h<< 11 Okt 2024  11:23:06 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -19,7 +19,7 @@ $DAT >>Heater.h<< 11 Okt 2024  07:47:03 - (c) proDAD
 */
 #pragma endregion
 #pragma region Includes
-#include <HomeKit_HeaterCooler.h>
+#include <HomeKit_Thermostat.h>
 
 /* Display + AHT-Sensor */
 #include <SPI.h>
@@ -33,7 +33,7 @@ $DAT >>Heater.h<< 11 Okt 2024  07:47:03 - (c) proDAD
 #include <Adafruit_AHTX0.h>
 
 using namespace HBHomeKit;
-using namespace HBHomeKit::HeaterCooler;
+using namespace HBHomeKit::Thermostat;
 #pragma endregion
 
 #pragma region Config
@@ -46,7 +46,7 @@ Adafruit_SSD1306 display(128, 64, &Wire);
 Adafruit_AHTX0 aht;
 
 // Example: Header with humidity and temperature sensor (AHTx0)
-constexpr auto Characteristics = ECharacteristicFlags::Heater_HumiditySensor;
+constexpr auto Characteristics = ECharacteristicFlags::Thermostat_Heating_HumiditySensor;
 
 #pragma endregion
 
@@ -56,9 +56,9 @@ struct CDisplay
   #pragma region EAttr
   enum class EAttr : uint8_t
   {
-    Normal  = 0x00,
-    Marked  = 0x01,
-    Hide    = 0x02
+    Normal = 0x00,
+    Marked = 0x01,
+    Hide = 0x02
   };
 
   friend constexpr inline bool operator & (EAttr a, EAttr b) { return static_cast<uint8_t>(a) & static_cast<uint8_t>(b); }
@@ -75,15 +75,13 @@ struct CDisplay
     COptionalFloat  TargetTemperature{};
     COptionalFloat  Temperature{};
     COptionalFloat  Humidity{};
-    HOMEKIT_CURRENT_HEATER_COOLER_STATE CurrentState{ HOMEKIT_CURRENT_HEATER_COOLER_STATE_UNDEF };
-    HOMEKIT_CHARACTERISTIC_STATUS       Active{ HOMEKIT_STATUS_UNDEF };
+    HOMEKIT_CURRENT_HEATING_COOLING_STATE CurrentState{ HOMEKIT_CURRENT_HEATING_COOLING_STATE_UNDEF };
 
 
     bool TemperatureChanged{};
     bool HumidityChanged{};
     bool TargetTemperatureChanged{};
     bool CurrentStateChanged{};
-    bool ActiveChanged{};
   };
 
   #pragma endregion
@@ -93,8 +91,7 @@ struct CDisplay
   float   mLastTemperature{ std::numeric_limits<float>::min() };
   float   mLastTargetTemperature{ std::numeric_limits<float>::min() };
   float   mLastHumidity{ std::numeric_limits<float>::min() };
-  HOMEKIT_CURRENT_HEATER_COOLER_STATE mLastState{ HOMEKIT_CURRENT_HEATER_COOLER_STATE_UNDEF };
-  HOMEKIT_CHARACTERISTIC_STATUS       mLastActive{};
+  HOMEKIT_CURRENT_HEATING_COOLING_STATE mLastState{ HOMEKIT_CURRENT_HEATING_COOLING_STATE_UNDEF };
 
   #pragma endregion
 
@@ -155,15 +152,14 @@ struct CDisplay
   #pragma endregion
 
   #pragma region DrawState
-  static void DrawState(CContext& ctx, HOMEKIT_CURRENT_HEATER_COOLER_STATE state, EAttr attr)
+  static void DrawState(CContext& ctx, HOMEKIT_CURRENT_HEATING_COOLING_STATE state, EAttr attr)
   {
     const char* Txt{};
     switch(state)
     {
-      case HOMEKIT_CURRENT_HEATER_COOLER_STATE_INACTIVE:  Txt = "OFF"; break;
-      case HOMEKIT_CURRENT_HEATER_COOLER_STATE_IDLE:      Txt = "IDLE"; break;
-      case HOMEKIT_CURRENT_HEATER_COOLER_STATE_HEATING:   Txt = "HEAT"; break;
-      case HOMEKIT_CURRENT_HEATER_COOLER_STATE_COOLING:   Txt = "COOL"; break;
+      case HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF:   Txt = "OFF"; break;
+      case HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT:  Txt = "HEAT"; break;
+      case HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL:  Txt = "COOL"; break;
     }
 
     ctx.NeedDisplay = true;
@@ -205,8 +201,6 @@ struct CDisplay
   #pragma region IdentifyChanges
   void IdentifyChanges(CContext& ctx)
   {
-    ctx.ActiveChanged = ctx.Active != mLastActive;
-    mLastActive = ctx.Active;
     ctx.CurrentStateChanged = ctx.CurrentState != mLastState;
     mLastState = ctx.CurrentState;
 
@@ -239,18 +233,13 @@ struct CDisplay
     if(ctx.HumidityChanged)
       DrawHumidity(ctx, ClampF(ctx.Humidity.value_or(0.0f)), ctx.Humidity ? EAttr::Normal : EAttr::Hide);
 
-    if(ctx.TargetTemperatureChanged || ctx.ActiveChanged || ctx.CurrentStateChanged)
+    if(ctx.TargetTemperatureChanged || ctx.CurrentStateChanged)
     {
-      EAttr Attr = EAttr::Hide;
-      if(ctx.TargetTemperature && ctx.Active == HOMEKIT_STATUS_ACTIVE)
+      EAttr Attr = EAttr::Normal;
+      if(ctx.CurrentState == HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT
+        || ctx.CurrentState == HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL)
       {
-        Attr = EAttr::Normal;
-
-        if(ctx.CurrentState == HOMEKIT_CURRENT_HEATER_COOLER_STATE_HEATING
-          || ctx.CurrentState == HOMEKIT_CURRENT_HEATER_COOLER_STATE_COOLING)
-        {
-          Attr = EAttr::Marked;
-        }
+        Attr = EAttr::Marked;
       }
       DrawTargetTemperature(ctx, ClampF(ctx.TargetTemperature.value_or(0.0f)), Attr);
     }
@@ -272,12 +261,12 @@ struct CDisplay
 
     CContext Ctx
     {
-      .Tick               = Tick++,
-      .TargetTemperature  = CanHeating ? info.HeatingThresholdTemperature : info.CoolingThresholdTemperature,
-      .Temperature        = info.Sensor.Temperature,
-      .Humidity           = info.Sensor.Humidity,
-      .CurrentState       = info.CurrentState,
-      .Active             = info.Active
+      .Tick = Tick++,
+      //.TargetTemperature = CanHeating ? info.HeatingThresholdTemperature : info.CoolingThresholdTemperature,
+      .TargetTemperature = info.TargetTemperature,
+      .Temperature = info.Sensor.Temperature,
+      .Humidity = info.Sensor.Humidity,
+      .CurrentState = info.CurrentState
     };
 
 
@@ -311,15 +300,15 @@ struct CDisplay
 CHost Host
 (
   MakeControlUnit(),
-  MakeOnStateChangedUnit([](HOMEKIT_CURRENT_HEATER_COOLER_STATE state)
+  MakeOnStateChangedUnit([](HOMEKIT_CURRENT_HEATING_COOLING_STATE state)
     {
       switch(state)
       {
-        case HOMEKIT_CURRENT_HEATER_COOLER_STATE_HEATING:
+        case HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT:
           //digitalWrite(PIN_HEATER, HIGH);
           break;
 
-        case HOMEKIT_CURRENT_HEATER_COOLER_STATE_COOLING:
+        case HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL:
           //digitalWrite(PIN_COOLER, HIGH);
           break;
 
@@ -333,7 +322,7 @@ CHost Host
     1000, // [ms] Determine new sensor values every second
     [
       Temperature = CKalman1DFilterF{ .R = 8e-3f /* Measurement variance */ },
-      Humidity    = CKalman1DFilterF{ .R = 8e-3f /* Measurement variance */ }
+        Humidity = CKalman1DFilterF{ .R = 8e-3f /* Measurement variance */ }
     ]() mutable
     {
       sensors_event_t humidity, temp;
@@ -341,12 +330,10 @@ CHost Host
 
       CSensorInfo Info;
       Info.Temperature = Temperature.Update(temp.temperature);
-      Info.Humidity    = Humidity.Update(humidity.relative_humidity);
+      Info.Humidity = Humidity.Update(humidity.relative_humidity);
       return Info;
     }),
-  MakeOnChangedUnit(
-    500, // [ms] Check for changes every 500ms and let the dot flash
-    [Display = CDisplay{}](const CChangeInfo& info) mutable
+  MakeOnChangedUnit(500, [Display = CDisplay{}](const CChangeInfo& info) mutable
     {
       Display.Update(info);
     }),
@@ -361,7 +348,7 @@ CHost Host
 const CDeviceService Device
 {
   {
-    .DeviceName{"Heater"}, // available as http://Heater.local
+    .DeviceName{"Thermostat"}, // available as http://Thermostat.local
     /*
     * ... more optional device information: You can read more about the CDeviceService in hb_homekit.h
     */
@@ -372,7 +359,7 @@ const CDeviceService Device
 /*
 * @brief
 */
-CHeaterCoolerService HeaterCoolerService
+CThermostatService ThermostatService
 (
   Characteristics,
   &Host
@@ -385,8 +372,8 @@ CHeaterCoolerService HeaterCoolerService
 CHomeKit HomeKit
 (
   Device,
-  homekit_accessory_category_heater,
-  &HeaterCoolerService
+  homekit_accessory_category_thermostat,
+  &ThermostatService
 );
 
 #pragma endregion
@@ -436,8 +423,8 @@ void setup()
 	Serial.println("\n\n\nEnter Setup");
 
 
-  // Installs and configures everything for Heater.
-  InstallAndSetupHeaterCooler(HomeKit, HeaterCoolerService, Host);
+  // Installs and configures everything for Thermostat.
+  InstallAndSetupThermostat(HomeKit, ThermostatService, Host);
 
   // Adds a menu (WiFi) that allows the user to connect to a WiFi network.
   AddWiFiLoginMenu(HomeKit);

@@ -23,6 +23,8 @@ namespace Thermostat
 #pragma endregion
 
 #pragma region +Support
+using COptionalFloat = std::optional<float>;
+
 
 #pragma region ECharacteristicFlags
 /*
@@ -30,16 +32,22 @@ namespace Thermostat
 */
 enum class ECharacteristicFlags : uint16_t
 {
-  None              = 0x0000,
-  HumiditySensor    = 0x0001,
-  HumidityActor     = 0x0002,
-  CoolingThreshold  = 0x0004,
-  HeatingThreshold  = 0x0008,
+  HumiditySensor    = 0x0001, // optional
+  HumidityActor     = 0x0002, // optional
+  CoolingThreshold  = 0x0004, // (This setting is made on the device)
+  HeatingThreshold  = 0x0008, // (This setting is made on the device)
+
+  SupportsHeating   = 0x0040, // The device can be used for heating
+  SupportsCooling   = 0x0080, // The device can be used for cooling
+  SupportsBoth = SupportsHeating | SupportsCooling, // The device can be used for heating and cooling
 
 
   /* Useful combinations */
+  Thermostat_Heating = SupportsHeating, // The thermostat can be used for heating
+  Thermostat_Cooling = SupportsCooling, // The thermostat can be used for cooling
+  Thermostat = SupportsBoth, // The thermostat can be used for heating and cooling
 
-  Thermostat_Heating = HeatingThreshold,
+  Thermostat_HumiditySensor = Thermostat | HumiditySensor,
   Thermostat_Heating_HumiditySensor = Thermostat_Heating | HumiditySensor,
 };
 
@@ -47,14 +55,18 @@ constexpr inline bool operator & (ECharacteristicFlags a, ECharacteristicFlags b
 {
   return (static_cast<uint16_t>(a) & static_cast<uint16_t>(b)) != 0;
 }
+constexpr inline ECharacteristicFlags operator | (ECharacteristicFlags a, ECharacteristicFlags b)
+{
+  return static_cast<ECharacteristicFlags>(static_cast<uint16_t>(a) | static_cast<uint16_t>(b));
+}
 
 #pragma endregion
 
 #pragma region CSensorInfo
 struct CSensorInfo
 {
-  std::optional<float> Temperature;
-  std::optional<float> Humidity;
+  COptionalFloat Temperature;
+  COptionalFloat Humidity;
 
   bool Assign(const CSensorInfo& info)
   {
@@ -95,22 +107,21 @@ struct CMessage
 #pragma region CChangeInfo
 struct CChangeInfo
 {
-  ECharacteristicFlags Flags{};
-  CSensorInfo Sensor;
-  float       TargetTemperature{};
-  float       TargetHumidity{};
-  float       CoolingThresholdTemperature{};
-  float       HeatingThresholdTemperature{};
+  ECharacteristicFlags  Flags{};
+  CSensorInfo           Sensor;
+  COptionalFloat        CoolingThresholdTemperature{};
+  COptionalFloat        HeatingThresholdTemperature{};
+  COptionalFloat        TargetHumidity{};
+  COptionalFloat        TargetTemperature{};
 
   HOMEKIT_TEMPERATURE_DISPLAY_UNIT      DisplayUnit{ HOMEKIT_TEMPERATURE_DISPLAY_UNIT_CELSIUS };
   HOMEKIT_CURRENT_HEATING_COOLING_STATE CurrentState{ HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF };
   HOMEKIT_TARGET_HEATING_COOLING_STATE  TargetState{ HOMEKIT_TARGET_HEATING_COOLING_STATE_OFF };
 
-  bool Changed{};
+  bool Changed{}; // True if any value has changed for the last time
 };
 
 #pragma endregion
-
 
 #pragma region CFixPoint
 template<typename T, int TShift>
@@ -161,7 +172,6 @@ using fix10_6_t = CFixPoint<int16_t, 6>;
 using fix8_8_t = CFixPoint<int16_t, 8>;
 
 #pragma endregion
-
 
 #pragma region CEventRecorder
 struct CEventRecorder
@@ -338,22 +348,28 @@ struct ISystem
    * virtual ~ISystem() = default;
   */
 
-  virtual HOMEKIT_TARGET_HEATING_COOLING_STATE GetTargetState() const = 0;
+  virtual ECharacteristicFlags GetFlags() const = 0;
 
+  virtual HOMEKIT_TARGET_HEATING_COOLING_STATE GetTargetState() const = 0;
   virtual void SetTargetState(HOMEKIT_TARGET_HEATING_COOLING_STATE value) = 0;
 
   virtual HOMEKIT_CURRENT_HEATING_COOLING_STATE GetCurrentState() const = 0;
-
   virtual void SetCurrentState(HOMEKIT_CURRENT_HEATING_COOLING_STATE value) = 0;
 
   virtual HOMEKIT_TEMPERATURE_DISPLAY_UNIT GetDisplayUnit() const = 0;
+  virtual void SetDisplayUnit(HOMEKIT_TEMPERATURE_DISPLAY_UNIT) = 0;
 
-  virtual ECharacteristicFlags GetFlags() const = 0;
-  
-  virtual float GetTargetTemperature() const = 0;
-  virtual float GetTargetHumidity() const = 0;
-  virtual float GetCoolingThresholdTemperature() const = 0;
-  virtual float GetHeatingThresholdTemperature() const = 0;
+  virtual COptionalFloat GetTargetTemperature() const = 0;
+  virtual void SetTargetTemperature(float) = 0;
+
+  virtual COptionalFloat GetTargetHumidity() const = 0;
+  virtual void SetTargetHumidity(float) = 0;
+
+  virtual COptionalFloat GetCoolingThresholdTemperature() const = 0;
+  virtual void SetCoolingThresholdTemperature(float) = 0;
+
+  virtual COptionalFloat GetHeatingThresholdTemperature() const = 0;
+  virtual void SetHeatingThresholdTemperature(float) = 0;
 
 
 };
@@ -375,6 +391,8 @@ struct IUnit
   using CMessageArgs = CArgs<CMessage>;
   using CSensorInfoArgs = CArgs<CSensorInfo>;
   using CEventRecorderArgs = CArgs<EventRecorder_Ptr>;
+  using CCurrentStateArgs = CArgs<HOMEKIT_CURRENT_HEATING_COOLING_STATE>;
+  using CTargetStateArgs = CArgs<HOMEKIT_TARGET_HEATING_COOLING_STATE>;
 
   struct CSetupArgs
   {
@@ -431,6 +449,8 @@ struct IUnit
   virtual void WriteSensorInfo(CSensorInfoArgs&) {}
   virtual void QueryEventRecorder(CEventRecorderArgs&) {}
   virtual void QueryNextMessage(CMessageArgs&) {}
+  virtual void SetCurrentState(CCurrentStateArgs&) {}
+  virtual void OnTargetStateChanged(CTargetStateArgs&) {}
 
 
   //END Virtual Methods
@@ -576,6 +596,14 @@ public:
   {
     InvokeMethod(&IUnit::QueryNextMessage, args);
   }
+  void SetCurrentState(CCurrentStateArgs& args) override
+  {
+    InvokeMethod(&IUnit::SetCurrentState, args);
+  }
+  void OnTargetStateChanged(CTargetStateArgs& args) override
+  {
+    InvokeMethod(&IUnit::OnTargetStateChanged, args);
+  }
 
 
 
@@ -639,26 +667,16 @@ struct CThermostatService : public ISystem
     /* The name of the sensor value
     */
     const char* Name{ "Thermostat" };
-    HOMEKIT_CURRENT_HEATING_COOLING_STATE CurrentState{ HOMEKIT_CURRENT_HEATING_COOLING_STATE_OFF };
 
     /* Free to use by user
     */
     void* UserPtr{};
 
     homekit_value_t(*CurrentTemperatureGetter)(const homekit_characteristic_t*) {};
-    void(*TargetTemperatureSetter)(homekit_characteristic_t*, homekit_value_t) {};
+    homekit_value_t(*CurrentHumidityGetter)(const homekit_characteristic_t*) {};
 
-    homekit_value_t(*CurrentStateGetter)(const homekit_characteristic_t*) {};
     void(*TargetStateSetter)(homekit_characteristic_t*, homekit_value_t) {};
 
-    void(*TemperatureUnitSetter)(homekit_characteristic_t*, homekit_value_t) {};
-
-    /* Optional */
-    homekit_value_t(*CurrentHumidityGetter)(const homekit_characteristic_t*) {};
-    void(*TargetHumiditySetter)(homekit_characteristic_t*, homekit_value_t) {};
-
-    void(*CoolingThresholdTemperatureSetter)(homekit_characteristic_t*, homekit_value_t) {};
-    void(*HeatingThresholdTemperatureSetter)(homekit_characteristic_t*, homekit_value_t) {};
   };
 
   #pragma endregion
@@ -672,13 +690,13 @@ struct CThermostatService : public ISystem
     , Name{ HOMEKIT_DECLARE_CHARACTERISTIC_NAME(params.Name) }
     , CurrentTemperature{ HOMEKIT_DECLARE_CHARACTERISTIC_CURRENT_TEMPERATURE("Current Temperature", 22, .getter_ex = params.CurrentTemperatureGetter, .UserPtr = params.UserPtr) }
     , CurrentHumidity{ HOMEKIT_DECLARE_CHARACTERISTIC_CURRENT_RELATIVE_HUMIDITY("Current Humidity", 48, .getter_ex = params.CurrentHumidityGetter, .UserPtr = params.UserPtr) }
-    , TargetTemperature{ HOMEKIT_DECLARE_CHARACTERISTIC_TARGET_TEMPERATURE("Target Temperature", 22, .setter_ex = params.TargetTemperatureSetter, .UserPtr = params.UserPtr) }
-    , TargetHumidity{ HOMEKIT_DECLARE_CHARACTERISTIC_TARGET_RELATIVE_HUMIDITY("Target Humidity", 48, .setter_ex = params.TargetHumiditySetter, .UserPtr = params.UserPtr) }
-    , TemperatureDisplayUnit{ HOMEKIT_DECLARE_CHARACTERISTIC_TEMPERATURE_DISPLAY_UNITS(HOMEKIT_TEMPERATURE_DISPLAY_UNIT_CELSIUS, .setter_ex = params.TemperatureUnitSetter, .UserPtr = params.UserPtr) }
-    , CoolingThresholdTemperature{ HOMEKIT_DECLARE_CHARACTERISTIC_COOLING_THRESHOLD_TEMPERATURE("Cooling Threshold Temperature", 30, .setter_ex = params.CoolingThresholdTemperatureSetter, .UserPtr = params.UserPtr) }
-    , HeatingThresholdTemperature{ HOMEKIT_DECLARE_CHARACTERISTIC_HEATING_THRESHOLD_TEMPERATURE("Heating Threshold Temperature", 20, .setter_ex = params.HeatingThresholdTemperatureSetter, .UserPtr = params.UserPtr) }
-    , CurrentHeatingCoolingState{ HOMEKIT_DECLARE_CHARACTERISTIC_CURRENT_HEATING_COOLING_STATE("Current Heating Cooling State", params.CurrentState, .getter_ex = params.CurrentStateGetter, .UserPtr = params.UserPtr) }
-    , TargetHeatingCoolingState{ HOMEKIT_DECLARE_CHARACTERISTIC_TARGET_HEATING_COOLING_STATE("Target Heating Cooling State", 0, .setter_ex = params.TargetStateSetter, .UserPtr = params.UserPtr) }
+    , TargetTemperature{ HOMEKIT_DECLARE_CHARACTERISTIC_TARGET_TEMPERATURE("Target Temperature", 22, .UserPtr = params.UserPtr) }
+    , TargetHumidity{ HOMEKIT_DECLARE_CHARACTERISTIC_TARGET_RELATIVE_HUMIDITY("Target Humidity", 48, .UserPtr = params.UserPtr) }
+    , TemperatureDisplayUnit{ HOMEKIT_DECLARE_CHARACTERISTIC_TEMPERATURE_DISPLAY_UNITS(HOMEKIT_TEMPERATURE_DISPLAY_UNIT_CELSIUS,  .UserPtr = params.UserPtr) }
+    , CoolingThresholdTemperature{ HOMEKIT_DECLARE_CHARACTERISTIC_COOLING_THRESHOLD_TEMPERATURE("Cooling Threshold Temperature", 30, .UserPtr = params.UserPtr) }
+    , HeatingThresholdTemperature{ HOMEKIT_DECLARE_CHARACTERISTIC_HEATING_THRESHOLD_TEMPERATURE("Heating Threshold Temperature", 20, .UserPtr = params.UserPtr) }
+    , CurrentHeatingCoolingState{ HOMEKIT_DECLARE_CHARACTERISTIC_CURRENT_HEATING_COOLING_STATE("Current Heating Cooling State", 0, .UserPtr = params.UserPtr) }
+    , TargetHeatingCoolingState{ HOMEKIT_DECLARE_CHARACTERISTIC_TARGET_HEATING_COOLING_STATE("Target Heating Cooling State", 0, .setter_ex = params.TargetStateSetter,.UserPtr = params.UserPtr) }
 
     , Service
     {
@@ -696,11 +714,11 @@ struct CThermostatService : public ISystem
 
       (params.CurrentHumidityGetter != nullptr && (flags & ECharacteristicFlags::HumiditySensor))
         ? &CurrentHumidity : nullptr,
-      (params.TargetHumiditySetter != nullptr && (flags & ECharacteristicFlags::HumidityActor))
+      (flags & ECharacteristicFlags::HumidityActor)
         ? &TargetHumidity : nullptr,
-      (params.CoolingThresholdTemperatureSetter != nullptr && (flags & ECharacteristicFlags::CoolingThreshold))
+      (flags & ECharacteristicFlags::CoolingThreshold)
         ? &CoolingThresholdTemperature : nullptr,
-      (params.HeatingThresholdTemperatureSetter != nullptr && (flags & ECharacteristicFlags::HeatingThreshold))
+      (flags & ECharacteristicFlags::HeatingThreshold)
         ? &HeatingThresholdTemperature : nullptr
     }
   {
@@ -751,6 +769,21 @@ struct CThermostatService : public ISystem
           return pC->value;
         },
 
+        .TargetStateSetter = [](homekit_characteristic_t* pC, homekit_value_t value) 
+        {
+          auto Unit = reinterpret_cast<IUnit*>(pC->UserPtr);
+          if(modify_value(pC, value))
+          {
+            if(Unit)
+            {
+              auto Stat = static_value_cast<HOMEKIT_TARGET_HEATING_COOLING_STATE>(value);
+              IUnit::CTargetStateArgs Args = Stat;
+              Unit->OnTargetStateChanged(Args);
+            }
+          }
+        },
+
+
       }
     )
   {
@@ -780,26 +813,11 @@ struct CThermostatService : public ISystem
   }
   #pragma endregion
 
-  #pragma region GetTargetState
+  #pragma region TargetState
   HOMEKIT_TARGET_HEATING_COOLING_STATE GetTargetState() const override
   {
     return static_value_cast<HOMEKIT_TARGET_HEATING_COOLING_STATE>(&TargetHeatingCoolingState);
   }
-
-  #pragma endregion
-  #pragma region GetCurrentState
-  HOMEKIT_CURRENT_HEATING_COOLING_STATE GetCurrentState() const override
-  {
-    return static_value_cast<HOMEKIT_CURRENT_HEATING_COOLING_STATE>(&CurrentHeatingCoolingState);
-  }
-  #pragma endregion
-  #pragma region SetCurrentState
-  void SetCurrentState(HOMEKIT_CURRENT_HEATING_COOLING_STATE value) override
-  {
-    modify_value_and_notify(&CurrentHeatingCoolingState, value);
-  }
-  #pragma endregion
-  #pragma region SetTargetState
   void SetTargetState(HOMEKIT_TARGET_HEATING_COOLING_STATE value) override
   {
 
@@ -815,37 +833,70 @@ struct CThermostatService : public ISystem
   }
 
   #pragma endregion
-  #pragma region GetDisplayUnit
+  #pragma region CurrentState
+  HOMEKIT_CURRENT_HEATING_COOLING_STATE GetCurrentState() const override
+  {
+    return static_value_cast<HOMEKIT_CURRENT_HEATING_COOLING_STATE>(&CurrentHeatingCoolingState);
+  }
+  void SetCurrentState(HOMEKIT_CURRENT_HEATING_COOLING_STATE value) override
+  {
+    modify_value_and_notify(&CurrentHeatingCoolingState, value);
+  }
+  #pragma endregion
+  #pragma region DisplayUnit
   HOMEKIT_TEMPERATURE_DISPLAY_UNIT GetDisplayUnit() const override
   {
     return static_value_cast<HOMEKIT_TEMPERATURE_DISPLAY_UNIT>(&TemperatureDisplayUnit);
   }
+  void SetDisplayUnit(HOMEKIT_TEMPERATURE_DISPLAY_UNIT value) override
+  {
+    modify_value_and_notify(&TemperatureDisplayUnit, value);
+  }
   #pragma endregion
   #pragma region GetTargetTemperature
-  float GetTargetTemperature() const override
+  COptionalFloat GetTargetTemperature() const override
   {
     return static_value_cast<float>(&TargetTemperature);
   }
+  void SetTargetTemperature(float value) override
+  {
+    modify_value_and_notify(&TargetTemperature, value);
+  }
 
   #pragma endregion
-  #pragma region GetTargetHumidity
-  float GetTargetHumidity() const override
+  #pragma region TargetHumidity
+  COptionalFloat GetTargetHumidity() const override
   {
+    if(!(Flags & ECharacteristicFlags::HumidityActor)) return {};
     return static_value_cast<float>(&TargetHumidity);
   }
-
-  #pragma endregion
-  #pragma region GetCoolingThresholdTemperature
-  float GetCoolingThresholdTemperature() const override
+  void SetTargetHumidity(float value) override
   {
-    return static_value_cast<float>(&CoolingThresholdTemperature);
+    modify_value_and_notify(&TargetHumidity, value);
   }
 
   #pragma endregion
-  #pragma region GetHeatingThresholdTemperature
-  float GetHeatingThresholdTemperature() const override
+  #pragma region CoolingThresholdTemperature
+  COptionalFloat GetCoolingThresholdTemperature() const override
   {
+    if(!(Flags & ECharacteristicFlags::CoolingThreshold)) return {};
+    return static_value_cast<float>(&CoolingThresholdTemperature);
+  }
+  void SetCoolingThresholdTemperature(float value) override
+  {
+    modify_value_and_notify(&CoolingThresholdTemperature, value);
+  }
+
+  #pragma endregion
+  #pragma region HeatingThresholdTemperature
+  COptionalFloat GetHeatingThresholdTemperature() const override
+  {
+    if(!(Flags & ECharacteristicFlags::HeatingThreshold)) return {};
     return static_value_cast<float>(&HeatingThresholdTemperature);
+  }
+  void SetHeatingThresholdTemperature(float value) override
+  {
+    modify_value_and_notify(&HeatingThresholdTemperature, value);
   }
 
   #pragma endregion
@@ -909,7 +960,6 @@ struct CThermostatService : public ISystem
 #pragma region to_string
 const char* to_string(HOMEKIT_TARGET_HEATING_COOLING_STATE state);
 const char* to_string(HOMEKIT_CURRENT_HEATING_COOLING_STATE state);
-const char* to_string(HOMEKIT_TEMPERATURE_DISPLAY_UNIT state);
 
 #pragma endregion
 
@@ -954,31 +1004,49 @@ IUnit_Ptr MakeContinuousReadSensorUnit(uint32_t intervalMS, std::function<CSenso
 
 #pragma region MakeOnChangedUnit
 /*
-* @brief
+* @brief Create a unit that notifies when the any value changes or at a specified interval.
+* @param intervalMS The interval in milliseconds to check for changes.
+* @note If the interval is 0, the unit is called only when a change occurs.
+*       Otherwise, the unit is called at the specified interval.
 * @example
     MakeOnChangedUnit([](const CChangeInfo& info)
       {
-        display.clearDisplay();
-
-        if(info.Temperature)
-        {
-          display.setCursor(0, 20);
-          display.print("Temp: ");
-          display.print(*info.Temperature);
-          display.println(" C");
-        }
-        if(info.Humidity)
-        {
-          display.setCursor(0, 45);
-          display.print("Hum:  ");
-          display.print(*info.Humidity);
-          display.println(" %");
-        }
-        display.display();
-
       })
 */
 IUnit_Ptr MakeOnChangedUnit(uint32_t intervalMS, std::function<void(const CChangeInfo&)> func);
+
+inline IUnit_Ptr MakeOnChangedUnit(std::function<void(const CChangeInfo&)> func)
+{
+  return MakeOnChangedUnit(0, func);
+}
+
+#pragma endregion
+
+#pragma region MakeOnStateChangedUnit
+/*
+* @brief Create a unit that notifies when the state changes
+* @note This is useful for updating the device-working state
+* @example
+    MakeOnStateChangedUnit([](HOMEKIT_CURRENT_HEATING_COOLING_STATE state)
+      {
+        switch(state)
+        {
+          case HOMEKIT_CURRENT_HEATING_COOLING_STATE_HEAT:
+            digitalWrite(PIN_HEATER, HIGH);
+            break;
+
+          case HOMEKIT_CURRENT_HEATING_COOLING_STATE_COOL:
+            digitalWrite(PIN_COOLER, HIGH);
+            break;
+
+          default:
+            digitalWrite(PIN_HEATER, LOW);
+            digitalWrite(PIN_COOLER, LOW);
+            break;
+        }
+      })
+*/
+IUnit_Ptr MakeOnStateChangedUnit(std::function<void(HOMEKIT_CURRENT_HEATING_COOLING_STATE)> func);
 
 #pragma endregion
 

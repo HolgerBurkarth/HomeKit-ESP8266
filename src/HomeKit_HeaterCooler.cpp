@@ -151,7 +151,6 @@ public:
     * Never do this permanently, or external value changes
     * will be overwritten and cannot be processed.
     */
-
     {
       auto HCState = Msg.HCState.value_or(HOMEKIT_CURRENT_HEATER_COOLER_STATE_INACTIVE);
       if(!mLastMessage.HCState || HCState != *mLastMessage.HCState)
@@ -297,6 +296,47 @@ public:
 IUnit_Ptr MakeOnChangedUnit(uint32_t intervalMS, std::function<void(const CChangeInfo&)> func)
 {
   return std::make_shared<COnChangedUnit>(intervalMS, std::move(func));
+}
+
+//END COnChangedUnit
+#pragma endregion
+
+#pragma region COnStateChangedUnit - Implementation
+class COnStateChangedUnit : public CUnitBase
+{
+  using NotifyFunc = std::function<void(HOMEKIT_CURRENT_HEATER_COOLER_STATE)>;
+
+  #pragma region Fields
+  NotifyFunc  mNotify;
+
+  #pragma endregion
+
+  #pragma region Construction
+public:
+  COnStateChangedUnit(NotifyFunc&& func)
+    : mNotify(std::move(func))
+  {}
+
+  #pragma endregion
+
+  #pragma region Override Methods
+
+  #pragma region SetCurrentState
+  void SetCurrentState(CCurrentStateArgs& args) override
+  {
+    mNotify(args.Value);
+  }
+
+  #pragma endregion
+
+
+  //END Override Methods
+  #pragma endregion
+};
+
+IUnit_Ptr MakeOnStateChangedUnit(std::function<void(HOMEKIT_CURRENT_HEATER_COOLER_STATE)> func)
+{
+  return std::make_shared<COnStateChangedUnit>(std::move(func));
 }
 
 //END COnChangedUnit
@@ -1068,7 +1108,6 @@ void InstallVarsAndCmds(CController& c, CHeaterCoolerService& svr, CHost& host)
     })
 
     #pragma endregion
-
 
     #pragma region TEMPERATURE
     .SetVar("TEMPERATURE", [&host](auto p)

@@ -53,7 +53,8 @@ constexpr auto SensorType = ESensorType::Temperature_Humidity;
 CHost Host
 (
   MakeControlUnit(),
-  MakeContinuousReadSensorUnit(1000,
+  MakeContinuousReadSensorUnit(
+    1000, // [ms] Determine new sensor values every second
     [
       Temperature = CKalman1DFilterF{ .R = 8e-3f /* Measurement variance */ },
       Humidity    = CKalman1DFilterF{ .R = 8e-3f /* Measurement variance */ }

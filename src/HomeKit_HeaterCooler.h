@@ -120,7 +120,6 @@ struct CChangeInfo
 
 #pragma endregion
 
-
 #pragma region CFixPoint
 template<typename T, int TShift>
 struct CFixPoint
@@ -170,7 +169,6 @@ using fix10_6_t = CFixPoint<int16_t, 6>;
 using fix8_8_t = CFixPoint<int16_t, 8>;
 
 #pragma endregion
-
 
 #pragma region CEventRecorder
 struct CEventRecorder
@@ -928,7 +926,6 @@ const char* to_string(HOMEKIT_CURRENT_HEATER_COOLER_STATE state);
 
 #pragma endregion
 
-
 #pragma region Unit - Functions
 
 #pragma region MakeControlUnit
@@ -969,31 +966,49 @@ IUnit_Ptr MakeContinuousReadSensorUnit(uint32_t intervalMS, std::function<CSenso
 
 #pragma region MakeOnChangedUnit
 /*
-* @brief
+* @brief Create a unit that notifies when the any value changes or at a specified interval.
+* @param intervalMS The interval in milliseconds to check for changes.
+* @note If the interval is 0, the unit is called only when a change occurs.
+*       Otherwise, the unit is called at the specified interval.
 * @example
     MakeOnChangedUnit([](const CChangeInfo& info)
       {
-        display.clearDisplay();
-
-        if(info.Temperature)
-        {
-          display.setCursor(0, 20);
-          display.print("Temp: ");
-          display.print(*info.Temperature);
-          display.println(" C");
-        }
-        if(info.Humidity)
-        {
-          display.setCursor(0, 45);
-          display.print("Hum:  ");
-          display.print(*info.Humidity);
-          display.println(" %");
-        }
-        display.display();
-
       })
 */
 IUnit_Ptr MakeOnChangedUnit(uint32_t intervalMS, std::function<void(const CChangeInfo&)> func);
+
+inline IUnit_Ptr MakeOnChangedUnit(std::function<void(const CChangeInfo&)> func)
+{
+  return MakeOnChangedUnit(0, func);
+}
+
+#pragma endregion
+
+#pragma region MakeOnStateChangedUnit
+/*
+* @brief Create a unit that notifies when the state changes
+* @note This is useful for updating the device-working state
+* @example
+    MakeOnStateChangedUnit([](HOMEKIT_CURRENT_HEATER_COOLER_STATE state)
+      {
+        switch(state)
+        {
+          case HOMEKIT_CURRENT_HEATER_COOLER_STATE_HEATING:
+            digitalWrite(PIN_HEATER, HIGH);
+            break;
+
+          case HOMEKIT_CURRENT_HEATER_COOLER_STATE_COOLING:
+            digitalWrite(PIN_COOLER, HIGH);
+            break;
+
+          default:
+            digitalWrite(PIN_HEATER, LOW);
+            digitalWrite(PIN_COOLER, LOW);
+            break;
+        }
+      })
+*/
+IUnit_Ptr MakeOnStateChangedUnit(std::function<void(HOMEKIT_CURRENT_HEATER_COOLER_STATE)> func);
 
 #pragma endregion
 
@@ -1019,7 +1034,8 @@ void AddMenuItems(CController& c);
 
 /*
 * @brief Installs the variables and commands for the HomeKit.
-* @vars TEMPERATURE, HUMIDITY
+* @vars TEMPERATURE, HUMIDITY, ENTRIES, RECORD_INTERVAL, RECORD_INTERVAL_STR, MAX_RECORD_ENTRIES, TOTAL_RECORD_TIME_STR
+* @vars TARGET_STATE, CURRENT_STATE, ACTIVE, COOLING_THRESHOLD_TEMPERATURE, HEATING_THRESHOLD_TEMPERATURE
 */
 void InstallVarsAndCmds(CController& c, CHeaterCoolerService& svr, CHost& host);
 
