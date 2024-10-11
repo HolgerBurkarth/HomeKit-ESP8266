@@ -5,7 +5,7 @@
 $CRT 20 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>characteristics.h<< 20 Sep 2024  09:29:13 - (c) proDAD
+$DAT >>characteristics.h<< 11 Okt 2024  14:55:18 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Includes
@@ -978,6 +978,141 @@ enum HOMEKIT_TEMPERATURE_DISPLAY_UNIT //: uint8_t
 
 #pragma endregion
 
+#pragma region HOMEKIT_DECLARE_CHARACTERISTIC_SMOKE_DETECTED
+enum HOMEKIT_SMOKE_DETECTED
+{
+  HOMEKIT_SMOKE_DETECTED_NO   = 0,
+  HOMEKIT_SMOKE_DETECTED_YES  = 1, //  indicates that smoke levels are abnormal
+};
+#define HOMEKIT_CHARACTERISTIC_SMOKE_DETECTED HOMEKIT_APPLE_UUID2("76")
+#define HOMEKIT_DECLARE_CHARACTERISTIC_SMOKE_DETECTED(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_SMOKE_DETECTED, \
+    .description = "Smoke Detected", \
+    .format = homekit_format_uint8, \
+    .permissions = homekit_permissions_paired_read \
+                 | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
+    .min_value = (const float[]) {0}, \
+    .max_value = (const float[]) {1}, \
+    .min_step = (const float[]) {1}, \
+    .valid_values = { \
+        .count = 2, \
+        .values = (const uint8_t[]) { 0, 1 }, \
+    }, \
+    ##__VA_ARGS__
+
+#pragma endregion
+
+#pragma region HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_MONOXIDE_DETECTED
+enum HOMEKIT_CARBON_MONOXIDE_DETECTED
+{
+  HOMEKIT_CARBON_MONOXIDE_DETECTED_NO = 0,
+  HOMEKIT_CARBON_MONOXIDE_DETECTED_YES = 1,
+};
+#define HOMEKIT_CHARACTERISTIC_CARBON_MONOXIDE_DETECTED HOMEKIT_APPLE_UUID2("69")
+#define HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_MONOXIDE_DETECTED(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_CARBON_MONOXIDE_DETECTED, \
+    .description = "Carbon Monoxide Detected", \
+    .format = homekit_format_uint8, \
+    .permissions = homekit_permissions_paired_read \
+                 | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
+    .min_value = (const float[]) {0}, \
+    .max_value = (const float[]) {1}, \
+    .min_step = (const float[]) {1}, \
+    .valid_values = { \
+        .count = 2, \
+        .values = (const uint8_t[]) { 0, 1 }, \
+    }, \
+    ##__VA_ARGS__
+
+#pragma endregion
+
+#pragma region HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_MONOXIDE_LEVEL
+#define HOMEKIT_CHARACTERISTIC_CARBON_MONOXIDE_LEVEL HOMEKIT_APPLE_UUID2("90")
+#define HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_MONOXIDE_LEVEL(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_CARBON_MONOXIDE_LEVEL, \
+    .description = "Carbon Monoxide Level", \
+    .format = homekit_format_float, \
+    .permissions = homekit_permissions_paired_read \
+                 | homekit_permissions_notify, \
+    .min_value = (const float[]) {0}, \
+    .max_value = (const float[]) {100}, \
+    .value = HOMEKIT_FLOAT_(_value), \
+    ##__VA_ARGS__
+
+#pragma endregion
+
+#pragma region HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_MONOXIDE_PEAK_LEVEL
+#define HOMEKIT_CHARACTERISTIC_CARBON_MONOXIDE_PEAK_LEVEL HOMEKIT_APPLE_UUID2("91")
+#define HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_MONOXIDE_PEAK_LEVEL(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_CARBON_MONOXIDE_PEAK_LEVEL, \
+    .description = "Carbon Monoxide Peak Level", \
+    .format = homekit_format_float, \
+    .permissions = homekit_permissions_paired_read \
+                 | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
+    .min_value = (const float[]) {0}, \
+    .max_value = (const float[]) {100}, \
+    ##__VA_ARGS__
+
+#pragma endregion
+
+#pragma region HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_DIOXIDE_DETECTED
+enum HOMEKIT_CARBON_DIOXIDE_DETECTED
+{
+  HOMEKIT_CARBON_DIOXIDE_DETECTED_NO = 0,
+  HOMEKIT_CARBON_DIOXIDE_DETECTED_YES = 1,
+};
+#define HOMEKIT_CHARACTERISTIC_CARBON_DIOXIDE_DETECTED HOMEKIT_APPLE_UUID2("92")
+#define HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_DIOXIDE_DETECTED(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_CARBON_DIOXIDE_DETECTED, \
+    .description = "Carbon Dioxide Detected", \
+    .format = homekit_format_uint8, \
+    .permissions = homekit_permissions_paired_read \
+                 | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
+    .min_value = (const float[]) {0}, \
+    .max_value = (const float[]) {1}, \
+    .min_step = (const float[]) {1}, \
+    .valid_values = { \
+        .count = 2, \
+        .values = (const uint8_t[]) { 0, 1 }, \
+    }, \
+    ##__VA_ARGS__
+
+#pragma endregion
+
+#pragma region HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_DIOXIDE_LEVEL
+#define HOMEKIT_CHARACTERISTIC_CARBON_DIOXIDE_LEVEL HOMEKIT_APPLE_UUID2("93")
+#define HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_DIOXIDE_LEVEL(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_CARBON_DIOXIDE_LEVEL, \
+    .description = "Carbon Dioxide Level", \
+    .format = homekit_format_float, \
+    .permissions = homekit_permissions_paired_read \
+                 | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
+    .min_value = (const float[]) {0}, \
+    .max_value = (const float[]) {100000}, \
+    ##__VA_ARGS__
+
+#pragma endregion
+
+#pragma region HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_DIOXIDE_PEAK_LEVEL
+#define HOMEKIT_CHARACTERISTIC_CARBON_DIOXIDE_PEAK_LEVEL HOMEKIT_APPLE_UUID2("94")
+#define HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_DIOXIDE_PEAK_LEVEL(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_CARBON_DIOXIDE_PEAK_LEVEL, \
+    .description = "Carbon Dioxide Peak Level", \
+    .format = homekit_format_float, \
+    .permissions = homekit_permissions_paired_read \
+                 | homekit_permissions_notify, \
+    .value = HOMEKIT_FLOAT_(_value), \
+    .min_value = (const float[]) {0}, \
+    .max_value = (const float[]) {100000}, \
+    ##__VA_ARGS__
+
+#pragma endregion
+
 
 
 
@@ -1806,23 +1941,6 @@ enum HOMEKIT_TARGET_HEATER_COOLER_STATE
     }, \
     ##__VA_ARGS__
 
-#define HOMEKIT_CHARACTERISTIC_SMOKE_DETECTED HOMEKIT_APPLE_UUID2("76")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_SMOKE_DETECTED(_value, ...) \
-    .type = HOMEKIT_CHARACTERISTIC_SMOKE_DETECTED, \
-    .description = "Smoke Detected", \
-    .format = homekit_format_uint8, \
-    .permissions = homekit_permissions_paired_read \
-                 | homekit_permissions_notify, \
-    .value = HOMEKIT_UINT8_(_value), \
-    .min_value = (const float[]) {0}, \
-    .max_value = (const float[]) {1}, \
-    .min_step = (const float[]) {1}, \
-    .valid_values = { \
-        .count = 2, \
-        .values = (const uint8_t[]) { 0, 1 }, \
-    }, \
-    ##__VA_ARGS__
-
 #define HOMEKIT_CHARACTERISTIC_STATUS_JAMMED HOMEKIT_APPLE_UUID2("78")
 #define HOMEKIT_DECLARE_CHARACTERISTIC_STATUS_JAMMED(_value, ...) \
     .type = HOMEKIT_CHARACTERISTIC_STATUS_JAMMED, \
@@ -1931,89 +2049,6 @@ enum HOMEKIT_TARGET_HEATER_COOLER_STATE
         .count = 3, \
         .values = (const uint8_t[]) { 0, 1, 2 }, \
     }, \
-    ##__VA_ARGS__
-
-#define HOMEKIT_CHARACTERISTIC_CARBON_MONOXIDE_DETECTED HOMEKIT_APPLE_UUID2("69")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_MONOXIDE_DETECTED(_value, ...) \
-    .type = HOMEKIT_CHARACTERISTIC_CARBON_MONOXIDE_DETECTED, \
-    .description = "Carbon Monoxide Detected", \
-    .format = homekit_format_uint8, \
-    .permissions = homekit_permissions_paired_read \
-                 | homekit_permissions_notify, \
-    .value = HOMEKIT_UINT8_(_value), \
-    .min_value = (const float[]) {0}, \
-    .max_value = (const float[]) {1}, \
-    .min_step = (const float[]) {1}, \
-    .valid_values = { \
-        .count = 2, \
-        .values = (const uint8_t[]) { 0, 1 }, \
-    }, \
-    ##__VA_ARGS__
-
-#define HOMEKIT_CHARACTERISTIC_CARBON_MONOXIDE_LEVEL HOMEKIT_APPLE_UUID2("90")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_MONOXIDE_LEVEL(_value, ...) \
-    .type = HOMEKIT_CHARACTERISTIC_CARBON_MONOXIDE_LEVEL, \
-    .description = "Carbon Monoxide Level", \
-    .format = homekit_format_float, \
-    .permissions = homekit_permissions_paired_read \
-                 | homekit_permissions_notify, \
-    .min_value = (const float[]) {0}, \
-    .max_value = (const float[]) {100}, \
-    .value = HOMEKIT_FLOAT_(_value), \
-    ##__VA_ARGS__
-
-#define HOMEKIT_CHARACTERISTIC_CARBON_MONOXIDE_PEAK_LEVEL HOMEKIT_APPLE_UUID2("91")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_MONOXIDE_PEAK_LEVEL(_value, ...) \
-    .type = HOMEKIT_CHARACTERISTIC_CARBON_MONOXIDE_PEAK_LEVEL, \
-    .description = "Carbon Monoxide Peak Level", \
-    .format = homekit_format_float, \
-    .permissions = homekit_permissions_paired_read \
-                 | homekit_permissions_notify, \
-    .value = HOMEKIT_FLOAT_(_value), \
-    .min_value = (const float[]) {0}, \
-    .max_value = (const float[]) {100}, \
-    ##__VA_ARGS__
-
-
-#define HOMEKIT_CHARACTERISTIC_CARBON_DIOXIDE_DETECTED HOMEKIT_APPLE_UUID2("92")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_DIOXIDE_DETECTED(_value, ...) \
-    .type = HOMEKIT_CHARACTERISTIC_CARBON_DIOXIDE_DETECTED, \
-    .description = "Carbon Dioxide Detected", \
-    .format = homekit_format_uint8, \
-    .permissions = homekit_permissions_paired_read \
-                 | homekit_permissions_notify, \
-    .value = HOMEKIT_UINT8_(_value), \
-    .min_value = (const float[]) {0}, \
-    .max_value = (const float[]) {1}, \
-    .min_step = (const float[]) {1}, \
-    .valid_values = { \
-        .count = 2, \
-        .values = (const uint8_t[]) { 0, 1 }, \
-    }, \
-    ##__VA_ARGS__
-
-#define HOMEKIT_CHARACTERISTIC_CARBON_DIOXIDE_LEVEL HOMEKIT_APPLE_UUID2("93")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_DIOXIDE_LEVEL(_value, ...) \
-    .type = HOMEKIT_CHARACTERISTIC_CARBON_DIOXIDE_LEVEL, \
-    .description = "Carbon Dioxide Level", \
-    .format = homekit_format_float, \
-    .permissions = homekit_permissions_paired_read \
-                 | homekit_permissions_notify, \
-    .value = HOMEKIT_FLOAT_(_value), \
-    .min_value = (const float[]) {0}, \
-    .max_value = (const float[]) {100000}, \
-    ##__VA_ARGS__
-
-#define HOMEKIT_CHARACTERISTIC_CARBON_DIOXIDE_PEAK_LEVEL HOMEKIT_APPLE_UUID2("94")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_DIOXIDE_PEAK_LEVEL(_value, ...) \
-    .type = HOMEKIT_CHARACTERISTIC_CARBON_DIOXIDE_PEAK_LEVEL, \
-    .description = "Carbon Dioxide Peak Level", \
-    .format = homekit_format_float, \
-    .permissions = homekit_permissions_paired_read \
-                 | homekit_permissions_notify, \
-    .value = HOMEKIT_FLOAT_(_value), \
-    .min_value = (const float[]) {0}, \
-    .max_value = (const float[]) {100000}, \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_AIR_QUALITY HOMEKIT_APPLE_UUID2("95")

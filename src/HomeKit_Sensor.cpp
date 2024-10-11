@@ -58,6 +58,21 @@ public:
 
   #pragma endregion
 
+  #pragma region OnEvent
+  void OnEvent(CEventInfoArgs& args) override
+  {
+    switch(args.Value.Event)
+    {
+      case EEventType::SmokeDetected:
+      case EEventType::CarbonMonoxide:
+      case EEventType::CarbonDioxide:
+        System->SetEventValue(args.Value.Value);
+        break;
+    }
+  }
+
+  #pragma endregion
+
 
   //END Override Methods
   #pragma endregion
@@ -120,6 +135,62 @@ public:
 IUnit_Ptr MakeContinuousReadSensorUnit(uint32_t interval, std::function<CSensorInfo(void)> func)
 {
   return std::make_shared<CContinuousReadSensorUnit>(interval, std::move(func));
+}
+
+//END CContinuousReadSensorUnit
+#pragma endregion
+
+#pragma region CContinuousReadEventUnit - Implementation
+class CContinuousReadEventUnit : public CUnitBase
+{
+  using GetterFunc = std::function<CEventInfo(void)>;
+
+  #pragma region Fields
+  GetterFunc mGetter;
+  uint32_t mInterval{};
+
+  #pragma endregion
+
+  #pragma region Construction
+public:
+  CContinuousReadEventUnit(uint32_t interval, GetterFunc&& func)
+    : mGetter(std::move(func)), mInterval(interval)
+  {}
+
+  #pragma endregion
+
+  #pragma region Override Methods
+
+  #pragma region Start
+
+  void Start(CVoidArgs&) override
+  {
+    Ctrl->Ticker.Start(mInterval, [this]()
+      {
+        CEventInfoArgs Args;
+        Args.Value = mGetter();
+        if(Args.Value.Event != EEventType::None)
+          Super->OnEvent(Args);
+      });
+
+    if(mInterval > 1000)
+    {
+      CEventInfoArgs Args;
+      Args.Value = mGetter();
+      if(Args.Value.Event != EEventType::None)
+        Super->OnEvent(Args);
+    }
+  }
+
+  #pragma endregion
+
+  //END Override Methods
+  #pragma endregion
+};
+
+IUnit_Ptr MakeContinuousReadEventUnit(uint32_t interval, std::function<CEventInfo(void)> func)
+{
+  return std::make_shared<CContinuousReadEventUnit>(interval, std::move(func));
 }
 
 //END CContinuousReadSensorUnit
@@ -193,7 +264,7 @@ struct CContinuousEventRecorderUnit : CUnitBase
 
   #pragma endregion
 
-  #pragma region WriteMotorInfo
+  #pragma region WriteSensorInfo
   void WriteSensorInfo(CSensorInfoArgs& args) override
   {
     if(mSuperInvoke(Super, &IUnit::WriteSensorInfo, args))

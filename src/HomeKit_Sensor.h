@@ -3,7 +3,7 @@
 $CRT 05 Okt 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>HomeKit_Sensor.h<< 08 Okt 2024  06:16:19 - (c) proDAD
+$DAT >>HomeKit_Sensor.h<< 11 Okt 2024  15:52:17 - (c) proDAD
 
 using namespace HBHomeKit::Sensor;
 *******************************************************************/
@@ -23,20 +23,42 @@ namespace Sensor
 #pragma endregion
 
 #pragma region +Support
+using COptionalFloat = std::optional<float>;
 
-#pragma region ESensorType
+#pragma region ECharacteristicFlags
 /* The type of the sensor.
 * @note The values are used as bit flags.
 */
-enum class ESensorType : uint16_t
+enum class ECharacteristicFlags : uint16_t
 {
-  None = 0x0000,
+  None        = 0x0000,
   Temperature = 0x0001,
-  Humidity = 0x0002,
+  Humidity    = 0x0002,
+  Event       = 0x0080, // see EEventType
 
   /* Useful combinations */
   Temperature_Humidity = Temperature | Humidity,
 
+};
+
+constexpr inline bool operator & (ECharacteristicFlags a, ECharacteristicFlags b)
+{
+  return (static_cast<uint16_t>(a) & static_cast<uint16_t>(b)) != 0;
+}
+constexpr inline ECharacteristicFlags operator | (ECharacteristicFlags a, ECharacteristicFlags b)
+{
+  return static_cast<ECharacteristicFlags>(static_cast<uint16_t>(a) | static_cast<uint16_t>(b));
+}
+
+#pragma endregion
+
+#pragma region EEventType
+enum class EEventType : uint8_t
+{
+  None,
+  SmokeDetected,
+  CarbonMonoxide,
+  CarbonDioxide,
 };
 
 #pragma endregion
@@ -44,8 +66,8 @@ enum class ESensorType : uint16_t
 #pragma region CSensorInfo
 struct CSensorInfo
 {
-  std::optional<float> Temperature;
-  std::optional<float> Humidity;
+  COptionalFloat  Temperature;
+  COptionalFloat  Humidity;
 
   bool Assign(const CSensorInfo& info)
   {
@@ -74,6 +96,16 @@ struct CSensorInfo
 
 };
 #pragma endregion
+
+#pragma region CEventInfo
+struct CEventInfo
+{
+  EEventType      Event;
+  homekit_value_t Value{};
+
+};
+#pragma endregion
+
 
 #pragma region CFixPoint
 template<typename T, int TShift>
@@ -290,6 +322,25 @@ inline EventRecorder_Ptr MakeStaticPtr(CEventRecorder& pV)
 //END Support
 #pragma endregion
 
+#pragma region ISystem
+/* Get and set the HomeKit states.
+* @note The value is sent to HomeKit when it is set.
+*/
+struct ISystem
+{
+  /* @note Do not use a virtual destructor to enable constexpr
+   *       for the definition of the service.
+   * virtual ~ISystem() = default;
+  */
+
+  virtual ECharacteristicFlags GetFlags() const = 0;
+  
+  virtual void SetEventValue(homekit_value_t) = 0;
+
+};
+
+#pragma endregion
+
 #pragma region IUnit
 /* The base class for all implementations of the sensor.
 *
@@ -304,11 +355,13 @@ struct IUnit
   #pragma region Types
   using CSensorInfoArgs = CArgs<CSensorInfo>;
   using CEventRecorderArgs = CArgs<EventRecorder_Ptr>;
+  using CEventInfoArgs = CArgs<CEventInfo>;
 
   struct CSetupArgs
   {
     CController* Ctrl{};
     IUnit* Super{};
+    ISystem* System{};
   };
 
 
@@ -358,6 +411,7 @@ struct IUnit
   virtual void ReadSensorInfo(CSensorInfoArgs&) {}
   virtual void WriteSensorInfo(CSensorInfoArgs&) {}
   virtual void QueryEventRecorder(CEventRecorderArgs&) {}
+  virtual void OnEvent(CEventInfoArgs&) {}
 
   //END Virtual Methods
   #pragma endregion
@@ -385,11 +439,13 @@ struct CUnitBase : IUnit
 {
   CController* Ctrl{};
   IUnit* Super{};
+  ISystem* System{};
 
   void Setup(const CSetupArgs& args) override
   {
     Ctrl = args.Ctrl;
     Super = args.Super;
+    System = args.System;
   }
 
 };
@@ -496,6 +552,10 @@ public:
   {
     InvokeMethod(&IUnit::QueryEventRecorder, args);
   }
+  void OnEvent(CEventInfoArgs& args) override
+  {
+    InvokeMethod(&IUnit::OnEvent, args);
+  }
 
   #pragma endregion
 
@@ -521,16 +581,20 @@ CSensorService AHT
 });
 
 */
-struct CSensorService
+struct CSensorService : public ISystem
 {
   #pragma region Fields
+  const ECharacteristicFlags Flags;
   homekit_characteristic_t TemperatureName;
   homekit_characteristic_t HumidityName;
   homekit_characteristic_t Temperature;
   homekit_characteristic_t Humidity;
+  homekit_characteristic_t EventName;
+  homekit_characteristic_t Event;
 
   CService<2> TemperatureService;
   CService<2> HumidityService;
+  CService<2> EventService;
 
   #pragma endregion
 
@@ -552,10 +616,13 @@ struct CSensorService
     */
     const char* TemperatureName{ "Temperature" };
     const char* HumidityName{ "Humidity" };
+    const char* EventName{ "Event" };
 
     /* Free to use by user
     */
     void* UserPtr{};
+
+    EEventType Event{};
 
     /* Optional */
     homekit_value_t(*TemperatureGetter)(const homekit_characteristic_t*) {};
@@ -569,11 +636,44 @@ struct CSensorService
   CSensorService(const CSensorService&) = delete;
   CSensorService(CSensorService&&) = delete;
 
-  constexpr CSensorService(Params_t params) noexcept
-    : TemperatureName{ HOMEKIT_DECLARE_CHARACTERISTIC_NAME(params.TemperatureName) }
+  #pragma region MakeCharacteristicEvent
+  constexpr static homekit_characteristic_t MakeCharacteristicEvent(EEventType e)
+  {
+    switch(e)
+    {
+      case EEventType::SmokeDetected: return { HOMEKIT_DECLARE_CHARACTERISTIC_SMOKE_DETECTED(0) };
+      case EEventType::CarbonMonoxide: return { HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_MONOXIDE_DETECTED(0) };
+      case EEventType::CarbonDioxide: return { HOMEKIT_DECLARE_CHARACTERISTIC_CARBON_DIOXIDE_DETECTED(0) };
+    }
+    return {};
+  }
+
+  #pragma endregion
+
+  #pragma region MakeEventService
+  constexpr static const char* MakeEventService(EEventType e)
+  {
+    switch(e)
+    {
+      case EEventType::SmokeDetected: return HOMEKIT_SERVICE_SMOKE_SENSOR;
+      case EEventType::CarbonMonoxide: return HOMEKIT_SERVICE_CARBON_MONOXIDE_SENSOR;
+      case EEventType::CarbonDioxide: return HOMEKIT_SERVICE_CARBON_DIOXIDE_SENSOR;
+    }
+    return {};
+  }
+
+  #pragma endregion
+
+
+
+  constexpr CSensorService(ECharacteristicFlags flags, Params_t params) noexcept
+    : Flags{ flags }
+    , TemperatureName{ HOMEKIT_DECLARE_CHARACTERISTIC_NAME(params.TemperatureName) }
     , HumidityName{ HOMEKIT_DECLARE_CHARACTERISTIC_NAME(params.HumidityName) }
+    , EventName{ HOMEKIT_DECLARE_CHARACTERISTIC_NAME(params.EventName) }
     , Temperature{ HOMEKIT_DECLARE_CHARACTERISTIC_CURRENT_TEMPERATURE(params.TemperatureName, 0, .getter_ex = params.TemperatureGetter, .UserPtr = params.UserPtr) }
     , Humidity{ HOMEKIT_DECLARE_CHARACTERISTIC_CURRENT_RELATIVE_HUMIDITY(params.HumidityName, 0, .getter_ex = params.HumidityGetter, .UserPtr = params.UserPtr) }
+    , Event{ MakeCharacteristicEvent(params.Event)}
     , TemperatureService
     {
       {
@@ -594,13 +694,26 @@ struct CSensorService
       &HumidityName,
       &Humidity
     }
+    , EventService
+    {
+      {
+        .type = MakeEventService(params.Event),
+        .primary = true
+      },
+
+      &EventName,
+      &Event
+    }
+
   {
   }
 
 
-  CSensorService(IUnit* pCtrl, ESensorType availableSensor) noexcept
-    : CSensorService
-    ({
+  CSensorService(IUnit* pCtrl, ECharacteristicFlags availableSensor) noexcept
+  : CSensorService
+  (
+    availableSensor,
+    {
       .UserPtr = reinterpret_cast<void*>(pCtrl),
 
       .TemperatureGetter = [](const homekit_characteristic_t* pC) -> homekit_value_t
@@ -640,15 +753,29 @@ struct CSensorService
         return pC->value;
       }
 
-      })
+    })
   {
     uint32_t AS = static_cast<uint32_t>(availableSensor);
 
-    if(!(AS & static_cast<uint32_t>(ESensorType::Temperature)))
+    if(!(AS & static_cast<uint32_t>(ECharacteristicFlags::Temperature)))
       Temperature.getter_ex = nullptr;
-    if(!(AS & static_cast<uint32_t>(ESensorType::Humidity)))
+    if(!(AS & static_cast<uint32_t>(ECharacteristicFlags::Humidity)))
       Humidity.getter_ex = nullptr;
   }
+
+  CSensorService(IUnit* pCtrl, EEventType event, ECharacteristicFlags flags = ECharacteristicFlags::Event) noexcept
+    : CSensorService
+    (
+      flags,
+      {
+        .UserPtr = reinterpret_cast<void*>(pCtrl),
+        .Event = event,
+
+      })
+  {
+  }
+
+
 
   #pragma endregion
 
@@ -662,6 +789,10 @@ struct CSensorService
   {
     return Humidity.getter_ex != nullptr;
   }
+  constexpr const bool EventDefined() const noexcept
+  {
+    return Flags & ECharacteristicFlags::Event;
+  }
 
   #pragma region GetUnit
   IUnit* GetUnit() const noexcept
@@ -672,6 +803,35 @@ struct CSensorService
 
 
   //END Properties
+  #pragma endregion
+
+  #pragma region ISystem-Methods (overrides)
+
+  #pragma region GetFlags
+  ECharacteristicFlags GetFlags() const override
+  {
+    return Flags;
+  }
+  #pragma endregion
+
+  #pragma region SetEventValue
+  void SetEventValue(homekit_value_t value) override
+  {
+    /* Prevent the implicit call of Unit->OnTargetStateChanged() by setting UserPtr to null.
+     * This is important because a call to OnTriggered() by OnTargetStateChanged()
+     * will cause OnTargetStateChanged() to be called again.
+    */
+    {
+      void* UserPtr = std::exchange(Event.UserPtr, nullptr);
+      modify_value_and_notify(&Event, value);
+      Event.UserPtr = UserPtr;
+    }
+  }
+  #pragma endregion
+
+
+
+  //END ISystem-Methods
   #pragma endregion
 
   #pragma region Methods
@@ -694,7 +854,9 @@ struct CSensorService
       Unit->Setup
       (
         {
-          .Ctrl = &CHomeKit::Singleton->Controller
+          .Ctrl = &CHomeKit::Singleton->Controller,
+          .Super = Unit,
+          .System = this
         }
       );
       {
@@ -708,15 +870,16 @@ struct CSensorService
 
   #pragma region GetService
   /* Get the service at the specified index
-* @param idx The index of the service
-* @return The service or nullptr (if idx is out of range or the service is not defined)
-*/
+  * @param idx The index of the service
+  * @return The service or nullptr (if idx is out of range or the service is not defined)
+  */
   constexpr const homekit_service_t* GetService(int idx) const noexcept
   {
     std::array Services
     {
-      TemperatureDefined() ? &TemperatureService : nullptr,
-      HumidityDefined() ? &HumidityService : nullptr
+      TemperatureDefined()  ? &TemperatureService : nullptr,
+      HumidityDefined()     ? &HumidityService : nullptr,
+      EventDefined()        ? &EventService : nullptr
     };
 
     for(int i = 0; i < Services.size(); ++i)
@@ -769,7 +932,7 @@ IUnit_Ptr MakeControlUnit();
 * @example
     MakeContinuousReadSensorUnit
     ( 
-      1000,
+      1000, // [ms] Determine new sensor values every second
       [
         Temperature = CKalman1DFilterF{ .R = 5e-3f },
         Humidity    = CKalman1DFilterF{ .R = 5e-3f }
@@ -788,6 +951,11 @@ IUnit_Ptr MakeControlUnit();
 
 */
 IUnit_Ptr MakeContinuousReadSensorUnit(uint32_t intervalMS, std::function<CSensorInfo(void)> func);
+
+#pragma endregion
+
+#pragma region MakeContinuousReadEventUnit
+IUnit_Ptr MakeContinuousReadEventUnit(uint32_t interval, std::function<CEventInfo(void)> func);
 
 #pragma endregion
 

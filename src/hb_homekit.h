@@ -608,6 +608,37 @@ template<> constexpr homekit_value_t static_value_cast<HOMEKIT_TARGET_HEATER_COO
   return static_value_cast(static_cast<uint8_t>(value));
 }
 
+/* HOMEKIT_SMOKE_DETECTED <-> homekit_value_t */
+template<> constexpr HOMEKIT_SMOKE_DETECTED static_value_cast<HOMEKIT_SMOKE_DETECTED>(const homekit_value_t& value) noexcept
+{
+  return static_cast<HOMEKIT_SMOKE_DETECTED>(static_value_cast<uint8_t>(value));
+}
+template<> constexpr homekit_value_t static_value_cast<HOMEKIT_SMOKE_DETECTED>(HOMEKIT_SMOKE_DETECTED value) noexcept
+{
+  return static_value_cast(static_cast<uint8_t>(value));
+}
+
+/* HOMEKIT_CARBON_MONOXIDE_DETECTED <-> homekit_value_t */
+template<> constexpr HOMEKIT_CARBON_MONOXIDE_DETECTED static_value_cast<HOMEKIT_CARBON_MONOXIDE_DETECTED>(const homekit_value_t& value) noexcept
+{
+  return static_cast<HOMEKIT_CARBON_MONOXIDE_DETECTED>(static_value_cast<uint8_t>(value));
+}
+template<> constexpr homekit_value_t static_value_cast<HOMEKIT_CARBON_MONOXIDE_DETECTED>(HOMEKIT_CARBON_MONOXIDE_DETECTED value) noexcept
+{
+  return static_value_cast(static_cast<uint8_t>(value));
+}
+
+/* HOMEKIT_CARBON_DIOXIDE_DETECTED <-> homekit_value_t */
+template<> constexpr HOMEKIT_CARBON_DIOXIDE_DETECTED static_value_cast<HOMEKIT_CARBON_DIOXIDE_DETECTED>(const homekit_value_t& value) noexcept
+{
+  return static_cast<HOMEKIT_CARBON_DIOXIDE_DETECTED>(static_value_cast<uint8_t>(value));
+}
+template<> constexpr homekit_value_t static_value_cast<HOMEKIT_CARBON_DIOXIDE_DETECTED>(HOMEKIT_CARBON_DIOXIDE_DETECTED value) noexcept
+{
+  return static_value_cast(static_cast<uint8_t>(value));
+}
+
+
 
 //END Implementation
 #pragma endregion
