@@ -180,8 +180,8 @@ class CContinuousReadSensorUnit : public CUnitBase
   using GetterFunc = std::function<CSensorInfo(void)>;
 
   #pragma region Fields
-  GetterFunc mGetter;
-  uint32_t mInterval{};
+  GetterFunc  mGetter;
+  uint32_t    mInterval{};
 
   #pragma endregion
 
@@ -262,13 +262,13 @@ public:
         if(OnlyChanges && !mInfo.Changed)
           return;
 
-        mInfo.Flags = System->GetFlags();
-        mInfo.CurrentState = System->GetCurrentState();
-        mInfo.DisplayUnit = System->GetDisplayUnit();
-        mInfo.TargetState = System->GetTargetState();
+        mInfo.Flags         = System->GetFlags();
+        mInfo.CurrentState  = System->GetCurrentState();
+        mInfo.DisplayUnit   = System->GetDisplayUnit();
+        mInfo.TargetState   = System->GetTargetState();
+        mInfo.Active        = System->GetActive();
         mInfo.CoolingThresholdTemperature = System->GetCoolingThresholdTemperature();
         mInfo.HeatingThresholdTemperature = System->GetHeatingThresholdTemperature();
-        mInfo.Active = System->GetActive();
 
         mNotify(mInfo);
         mInfo.Changed = false;
@@ -346,10 +346,10 @@ IUnit_Ptr MakeOnStateChangedUnit(std::function<void(HOMEKIT_CURRENT_HEATER_COOLE
 struct CContinuousEventRecorderUnit : CUnitBase
 {
   #pragma region Fields
-  CEventRecorder Record;
-  CSensorInfo mLastInfo;
-  CSuperInvoke mSuperInvoke{};
-  time_t mLastTime{};
+  CEventRecorder  Record;
+  CSensorInfo     mLastInfo;
+  CSuperInvoke    mSuperInvoke{};
+  time_t          mLastTime{};
 
   #pragma endregion
 

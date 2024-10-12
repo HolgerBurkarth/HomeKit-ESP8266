@@ -382,16 +382,16 @@ struct ISystem
 struct IUnit
 {
   #pragma region Types
-  using CMessageArgs = CArgs<CMessage>;
-  using CSensorInfoArgs = CArgs<CSensorInfo>;
-  using CEventRecorderArgs = CArgs<EventRecorder_Ptr>;
-  using CCurrentStateArgs = CArgs<HOMEKIT_CURRENT_HEATER_COOLER_STATE>;
+  using CMessageArgs        = CArgs<CMessage>;
+  using CSensorInfoArgs     = CArgs<CSensorInfo>;
+  using CEventRecorderArgs  = CArgs<EventRecorder_Ptr>;
+  using CCurrentStateArgs   = CArgs<HOMEKIT_CURRENT_HEATER_COOLER_STATE>;
 
   struct CSetupArgs
   {
-    CController* Ctrl{};
-    ISystem* System{};
-    IUnit* Super{};
+    CController*  Ctrl{};
+    ISystem*      System{};
+    IUnit*        Super{};
   };
 
 
@@ -469,15 +469,15 @@ inline IUnit_Ptr MakeStaticPtr(IUnit& pUnit)
 */
 struct CUnitBase : IUnit
 {
-  CController* Ctrl{};
-  IUnit* Super{};
-  ISystem* System{};
+  CController*  Ctrl{};
+  IUnit*        Super{};
+  ISystem*      System{};
 
   void Setup(const CSetupArgs& args) override
   {
-    Ctrl = args.Ctrl;
-    Super = args.Super;
-    System = args.System;
+    Ctrl    = args.Ctrl;
+    Super   = args.Super;
+    System  = args.System;
   }
 
 };
@@ -527,11 +527,6 @@ public:
   {
   }
 
-  #pragma endregion
-
-  #pragma region Public Methods
-
-  //END Public Methods
   #pragma endregion
 
   #pragma region Private Methods

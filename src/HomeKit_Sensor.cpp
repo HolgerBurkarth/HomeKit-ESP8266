@@ -146,8 +146,8 @@ class CContinuousReadEventUnit : public CUnitBase
   using GetterFunc = std::function<CEventInfo(void)>;
 
   #pragma region Fields
-  GetterFunc mGetter;
-  uint32_t mInterval{};
+  GetterFunc  mGetter;
+  uint32_t    mInterval{};
 
   #pragma endregion
 
@@ -241,10 +241,10 @@ IUnit_Ptr MakeOnSensorChangedUnit(std::function<void(const CSensorInfo&)> func)
 struct CContinuousEventRecorderUnit : CUnitBase
 {
   #pragma region Fields
-  CEventRecorder Record;
-  CSensorInfo mLastInfo;
-  CSuperInvoke mSuperInvoke{};
-  time_t mLastTime{};
+  CEventRecorder  Record;
+  CSensorInfo     mLastInfo;
+  CSuperInvoke    mSuperInvoke{};
+  time_t          mLastTime{};
 
   #pragma endregion
 
