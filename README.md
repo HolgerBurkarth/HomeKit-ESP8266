@@ -115,16 +115,16 @@ Read more: [Garage Door Opener Project](./examples/GarageDoor/README.md)
 
 ![Sensor](./media/en-hp-sensor01.jpg)
 
-![Sensor](./media/en-hp-sensor02.jpg)
+![Sensor](./media/de-hk-sensor01.jpg)
 
 ### 3. Heater
 
-![Sensor](./media/en-hp-heater01.jpg)
+![Sensor](./media/de-hk-heater01.jpg)
 
 
 ### 4. Thermostat (Temperature, Humidity)
 
-![Sensor](./media/en-hp-thermostat01.jpg)
+![Sensor](./media/de-hk-thermostat01.jpg)
 
 
 ---
