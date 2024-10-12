@@ -3,7 +3,7 @@
 $CRT 05 Okt 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>HomeKit_Sensor.cpp<< 08 Okt 2024  06:31:41 - (c) proDAD
+$DAT >>HomeKit_Sensor.cpp<< 12 Okt 2024  09:40:03 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -738,6 +738,7 @@ CTextEmitter MainPage_HtmlBody()
 void InstallVarsAndCmds(CController& c, CHost& host)
 {
   c
+    #pragma region TEMPERATURE
     .SetVar("TEMPERATURE", [&host](auto p)
       {
         IUnit::CSensorInfoArgs Args;
@@ -745,6 +746,9 @@ void InstallVarsAndCmds(CController& c, CHost& host)
         return MakeTextEmitter(String(Args.Value.Temperature.value_or(0.0f)));
       })
 
+    #pragma endregion
+
+    #pragma region HUMIDITY
     .SetVar("HUMIDITY", [&host](auto p)
       {
         IUnit::CSensorInfoArgs Args;
@@ -752,6 +756,9 @@ void InstallVarsAndCmds(CController& c, CHost& host)
         return MakeTextEmitter(String(Args.Value.Humidity.value_or(0.0f)));
       })
 
+    #pragma endregion
+
+    #pragma region ENTRIES
     .SetVar("ENTRIES", [&host](auto p)
       {
         IUnit::CEventRecorderArgs Args;
@@ -762,6 +769,9 @@ void InstallVarsAndCmds(CController& c, CHost& host)
         return Args.Value->EntriesEmitter();
       })
 
+    #pragma endregion
+
+    #pragma region RECORD_INTERVAL
     .SetVar("RECORD_INTERVAL", [&host](auto p)
       {
         int Interval = 1;
@@ -772,6 +782,9 @@ void InstallVarsAndCmds(CController& c, CHost& host)
         return MakeTextEmitter(String(Interval * 1000));
       })
 
+    #pragma endregion
+
+    #pragma region RECORD_INTERVAL_STR
     .SetVar("RECORD_INTERVAL_STR", [&host](auto p)
       {
         int Mins = 0, Secs = 1;
@@ -788,6 +801,9 @@ void InstallVarsAndCmds(CController& c, CHost& host)
         return MakeTextEmitter(Buf);
       })
 
+    #pragma endregion
+
+    #pragma region MAX_RECORD_ENTRIES
     .SetVar("MAX_RECORD_ENTRIES", [&host](auto p)
       {
         int MaxEntries = 1;
@@ -798,9 +814,12 @@ void InstallVarsAndCmds(CController& c, CHost& host)
         return MakeTextEmitter(String(MaxEntries));
       })
 
+    #pragma endregion
+
+    #pragma region TOTAL_RECORD_TIME_STR
     .SetVar("TOTAL_RECORD_TIME_STR", [&host](auto p)
       {
-        int Secs = 1, Mins =0, Hours = 0;
+        int Secs = 1, Mins = 0, Hours = 0;
         char Buf[32];
         IUnit::CEventRecorderArgs Args;
         host.QueryEventRecorder(Args);
@@ -814,6 +833,8 @@ void InstallVarsAndCmds(CController& c, CHost& host)
         snprintf_P(Buf, sizeof(Buf), PSTR("%dh %dm"), Hours, Mins);
         return MakeTextEmitter(Buf);
       })
+
+    #pragma endregion
 
     ;
 }

@@ -40,6 +40,7 @@ The documentation of the types, methods and functions is included in the source 
     - [GarageDoor.h](./examples/GarageDoor/GarageDoor.h) - Example of a garage door opener
 - [HomeKit_Sensor.h](./src/HomeKit_Sensor.h) - Framework for a sensor
     - [Sensor.h](./examples/Sensor/Sensor.h) - Example of a sensor (temperature, humidity, etc.)
+    - [SmokeDetected.h](./examples/SmokeDetected/SmokeDetected.h) - Example of a smoke detector
 - [HomeKit_Switch.h](./src/HomeKit_Switch.h) - Framework for a switcher
     - [Switch.h](./examples/Switch/Switch.h) - Example of a switcher
 - [HomeKit_HeaterCooler.h](./src/HomeKit_HeaterCooler.h) - Framework for a heater and cooler

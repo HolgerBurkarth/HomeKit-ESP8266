@@ -3,7 +3,7 @@
 $CRT 08 Okt 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>Sensor.h<< 08 Okt 2024  09:47:35 - (c) proDAD
+$DAT >>Sensor.h<< 12 Okt 2024  09:27:15 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -45,7 +45,7 @@ Adafruit_SSD1306 display(128, 64, &Wire);
 // AHTx0 Sensor
 Adafruit_AHTX0 aht;
 
-constexpr auto SensorType = ESensorType::Temperature_Humidity;
+constexpr auto SensorType = ECharacteristicFlags::Temperature_Humidity;
 
 #pragma endregion
 
