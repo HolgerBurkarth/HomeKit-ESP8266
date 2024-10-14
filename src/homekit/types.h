@@ -142,6 +142,15 @@ extern "C" {
   void homekit_value_destruct(homekit_value_t* value);
   void homekit_value_free(homekit_value_t* value);
 
+  #pragma region homekit_connect_t
+  typedef enum 
+  {
+    homekit_connect_ip = 2,
+    homekit_connect_ble = 4,
+    homekit_connect_ip_wac = 8,
+  } homekit_connect_t;
+  #pragma endregion
+
 
   #pragma region HOMEKIT_ Types
   #define HOMEKIT_NULL_(...) \

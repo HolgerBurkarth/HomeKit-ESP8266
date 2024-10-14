@@ -3432,8 +3432,11 @@ using CVoidArgs = CArgs<bool>;
 
 #pragma region +HomeKit - Services
 /* More information about HomeKit services can be found at:
-*           HomeKit_Switch.h
 *           HomeKit_GarageDoorOpener.h
+*           HomeKit_HeaterCooler.h
+*           HomeKit_Sensor.h
+*           HomeKit_Switch.h
+*           HomeKit_Thermostat.h
 */
 
 
@@ -3590,7 +3593,6 @@ struct CDeviceService
 };
 
 #pragma endregion
-
 
 
 //END HomeKit - Services

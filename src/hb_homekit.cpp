@@ -3,7 +3,7 @@
 $CRT 10 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.cpp<< 10 Okt 2024  06:23:37 - (c) proDAD
+$DAT >>hb_homekit.cpp<< 14 Okt 2024  06:28:54 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -1411,6 +1411,7 @@ void CController::Setup()
   // enable ETAG header in WebServer results from serveStatic handler
   WebServer.enableETag(true);
 
+
   WebServer.onNotFound([this]() 
     { 
       mWifiConnection.SetInUse();
@@ -2521,7 +2522,7 @@ void CHomeKit::Loop()
     {
       uint32_t Interval = std::min( Controller.Ticker.GetShortInterval(), Controller.OneShotTicker.GetShortInterval());
       Interval /= 2; // Nyquist–Shannon sampling theorem
-      Interval = std::min<uint32_t>(500, Interval); // not longer than 500ms
+      Interval = std::min<uint32_t>(100, Interval); // not longer than 100ms
       Interval = std::max<uint32_t>(25, Interval);  // not shorter than 25ms
       homekit_enter_http_idle();
       delay(Interval); // save energy

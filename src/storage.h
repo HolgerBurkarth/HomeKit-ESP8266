@@ -27,7 +27,6 @@ bool homekit_storage_common_read(uint8_t pageIndex, size_t offset, uint8_t* pBuf
 bool homekit_storage_common_write(uint8_t pageIndex, size_t offset, const uint8_t* pBuf, size_t size);
 
 int homekit_storage_reset();
-
 int homekit_storage_init();
 
 void homekit_storage_save_accessory_id(const char* accessory_id);

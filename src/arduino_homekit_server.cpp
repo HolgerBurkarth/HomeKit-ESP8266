@@ -4354,8 +4354,13 @@ void homekit_mdns_init(homekit_server_t* server)
   MDNS.begin(name->value.string_value, staIP);
   INFO("MDNS begin: http://%s.local, IP: %s", name->value.string_value, staIP.toString().c_str());
 
-  MDNSResponder::hMDNSService mdns_service = MDNS.addService(name->value.string_value,
-    HOMEKIT_MDNS_SERVICE, HOMEKIT_MDNS_PROTO, HOMEKIT_SERVER_PORT);
+  MDNSResponder::hMDNSService mdns_service = MDNS.addService
+  (
+    name->value.string_value,
+    HOMEKIT_MDNS_SERVICE,
+    HOMEKIT_MDNS_PROTO,
+    HOMEKIT_SERVER_PORT
+  );
   // Set a service specific callback for dynamic service TXT items.
   // The callback is called, whenever service TXT items are needed for the given service.
   MDNS.setDynamicServiceTxtCallback

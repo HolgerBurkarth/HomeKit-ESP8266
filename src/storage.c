@@ -3,7 +3,7 @@
 $CRT 13 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>storage.c<< 13 Sep 2024  15:04:04 - (c) proDAD
+$DAT >>storage.c<< 13 Okt 2024  09:29:23 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Includes
@@ -568,7 +568,7 @@ bool homekit_storage_common_read(uint8_t pageIndex, size_t offset, uint8_t* pBuf
 
   if(!spiflash_read(COMMON_BEGIN_ADDR + pageIndex * SPI_FLASH_SEC_SIZE + offset, pBuf, size))
   {
-    ERROR("Failed to read common data from HomeKit storage");
+    ERROR("spiflash_read failed page: %d", pageIndex);
     return false;
   }
 
@@ -605,7 +605,7 @@ bool homekit_storage_common_write(uint8_t pageIndex, size_t offset, const uint8_
     if(!spiflash_read(COMMON_BEGIN_ADDR + pageIndex * SPI_FLASH_SEC_SIZE, (byte*)Page, SPI_FLASH_SEC_SIZE))
     {
       CLEANUP();
-      ERROR("Failed to read common data from HomeKit storage");
+      ERROR("spiflash_read failed page: %d", pageIndex);
       return false;
     }
 
@@ -616,7 +616,7 @@ bool homekit_storage_common_write(uint8_t pageIndex, size_t offset, const uint8_
   if(!spiflash_erase_sector(COMMON_BEGIN_ADDR + pageIndex * SPI_FLASH_SEC_SIZE))
   {
     CLEANUP();
-    ERROR("Failed to erase common storage");
+    ERROR("spiflash_erase_sector failed page: %d", pageIndex);
     return false;
   }
 
@@ -624,7 +624,7 @@ bool homekit_storage_common_write(uint8_t pageIndex, size_t offset, const uint8_
   if(!spiflash_write(COMMON_BEGIN_ADDR + pageIndex * SPI_FLASH_SEC_SIZE + offset, pBuf, size))
   {
     CLEANUP();
-    ERROR("Failed to write common data to HomeKit storage");
+    ERROR("spiflash_write failed page: %d", pageIndex);
     return false;
   }
 
