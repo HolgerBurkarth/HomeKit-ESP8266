@@ -3,7 +3,7 @@
 $CRT 09 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.h<< 11 Okt 2024  10:35:00 - (c) proDAD
+$DAT >>hb_homekit.h<< 05 Dez 2024  14:51:08 - (c) proDAD
 
 using namespace HBHomeKit;
 *******************************************************************/
@@ -2625,6 +2625,7 @@ private:
   MENU_List               mMenuItems;
   CMD_Map                 mCMDs;
   VAR_Map                 mVars;
+  String                  mFirmwareUpdateURL;
   IHtmlWebSiteBuilder_Ptr mBuilder;
   CWiFiConnection&        mWifiConnection;
 
@@ -2699,6 +2700,8 @@ public:
   */
   bool SetSelectedMenuItemIndex(int index);
 
+  const String& GetFirmwareUpdateURL() const { return mFirmwareUpdateURL; }
+  void SetFirmwareUpdateURL(String url) { mFirmwareUpdateURL = std::move(url); }
 
   //END Properties
   #pragma endregion
@@ -3453,6 +3456,7 @@ struct CDeviceService
   homekit_characteristic_t HKName;
   homekit_characteristic_t HKSerialNumber;
   homekit_characteristic_t HKFirmwareRevision;
+  const char* FirmwareUpdateURL{};
   char HKDeviceName[64]{};
 
   CService<6> Service;
@@ -3467,6 +3471,7 @@ struct CDeviceService
     const char* Model = "ESP8266/ESP32";
     const char* SerialNumber = "0123456";
     const char* FirmwareRevision = "1.0";
+    const char* FirmwareUpdateURL{};
     const char* Manufacturer = "Holger Burkarth";
   };
 
@@ -3518,6 +3523,7 @@ struct CDeviceService
     HKName{ HOMEKIT_DECLARE_CHARACTERISTIC_NAME(HKDeviceName) },
     HKSerialNumber{ HOMEKIT_DECLARE_CHARACTERISTIC_SERIAL_NUMBER(base.SerialNumber) },
     HKFirmwareRevision{ HOMEKIT_DECLARE_CHARACTERISTIC_FIRMWARE_REVISION(base.FirmwareRevision) },
+    FirmwareUpdateURL{ base.FirmwareUpdateURL },
 
     Service
     {
@@ -3751,6 +3757,9 @@ public:
     , mLEDTimer{ 100, &UpdateBuildInLED }
   {
     Singleton = this;
+
+    if(device.FirmwareUpdateURL != nullptr)
+      Controller.SetFirmwareUpdateURL(device.FirmwareUpdateURL);
   }
 
   #pragma endregion
