@@ -3,7 +3,7 @@
 $CRT 09 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.h<< 05 Dez 2024  14:51:08 - (c) proDAD
+$DAT >>hb_homekit.h<< 06 Dez 2024  09:30:58 - (c) proDAD
 
 using namespace HBHomeKit;
 *******************************************************************/
@@ -2700,6 +2700,13 @@ public:
   */
   bool SetSelectedMenuItemIndex(int index);
 
+  /* Get und set the optional firmware update URL.
+  * @note Currently https is not support.
+  * @note An Update button is only displayed on the Device page if a URL has been defined.
+  * @see CDeviceService::FirmwareUpdateURL
+  * @example
+  * SetFirmwareUpdateURL("http://sample.com/firmware.bin");
+  */
   const String& GetFirmwareUpdateURL() const { return mFirmwareUpdateURL; }
   void SetFirmwareUpdateURL(String url) { mFirmwareUpdateURL = std::move(url); }
 
@@ -3467,11 +3474,26 @@ struct CDeviceService
   struct BaseAccessories_t
   {
     const char* DeviceName = "Device";
+
     uint16_t DeviceID{};
+
     const char* Model = "ESP8266/ESP32";
+
     const char* SerialNumber = "0123456";
+
     const char* FirmwareRevision = "1.0";
+
+    /* The URL for the firmware update.
+    * @note Currently https is not support.
+    * @note This value is only used when the device instance is used as a parameter for the CHomeKit constructor.
+    *       Otherwise, the value must be set directly via CController::SetFirmwareUpdateURL.
+    * @note An Update button is only displayed on the Device page if a URL has been defined.
+    * @see CController::SetFirmwareUpdateURL
+    * @example
+    *  FirmwareUpdateURL = "http://sample.com/firmware.bin";
+    */
     const char* FirmwareUpdateURL{};
+
     const char* Manufacturer = "Holger Burkarth";
   };
 
@@ -3487,6 +3509,8 @@ struct CDeviceService
       constexpr CDeviceService Device // http://Sample.local
       {
         .DeviceName{"Sample"},
+        .FirmwareRevision{"1.0.3"},
+        .FirmwareUpdateURL{"http://www.sample.com/esp8266/firmware.bin"}
       };
 --or--
       constexpr CDeviceService Device // http://Sample5F0C.local
