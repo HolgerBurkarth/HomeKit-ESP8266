@@ -638,6 +638,15 @@ template<> constexpr homekit_value_t static_value_cast<HOMEKIT_CARBON_DIOXIDE_DE
   return static_value_cast(static_cast<uint8_t>(value));
 }
 
+/* HOMEKIT_PROGRAMMABLE_SWITCH_EVENT <-> homekit_value_t */
+template<> constexpr HOMEKIT_PROGRAMMABLE_SWITCH_EVENT static_value_cast<HOMEKIT_PROGRAMMABLE_SWITCH_EVENT>(const homekit_value_t& value) noexcept
+{
+  return static_cast<HOMEKIT_PROGRAMMABLE_SWITCH_EVENT>(static_value_cast<uint8_t>(value));
+}
+template<> constexpr homekit_value_t static_value_cast<HOMEKIT_PROGRAMMABLE_SWITCH_EVENT>(HOMEKIT_PROGRAMMABLE_SWITCH_EVENT value) noexcept
+{
+  return static_value_cast(static_cast<uint8_t>(value));
+}
 
 
 //END Implementation

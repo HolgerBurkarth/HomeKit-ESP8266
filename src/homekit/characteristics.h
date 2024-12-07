@@ -5,7 +5,7 @@
 $CRT 20 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>characteristics.h<< 11 Okt 2024  14:55:18 - (c) proDAD
+$DAT >>characteristics.h<< 06 Dez 2024  11:03:34 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Includes
@@ -1113,6 +1113,31 @@ enum HOMEKIT_CARBON_DIOXIDE_DETECTED
 
 #pragma endregion
 
+#pragma region HOMEKIT_DECLARE_CHARACTERISTIC_PROGRAMMABLE_SWITCH_EVENT
+enum HOMEKIT_PROGRAMMABLE_SWITCH_EVENT
+{
+  HOMEKIT_PROGRAMMABLE_SWITCH_EVENT_SINGLE_PRESS  = 0,
+  HOMEKIT_PROGRAMMABLE_SWITCH_EVENT_DOUBLE_PRESS  = 1,
+  HOMEKIT_PROGRAMMABLE_SWITCH_EVENT_LONG_PRESS    = 2,
+};
+#define HOMEKIT_CHARACTERISTIC_PROGRAMMABLE_SWITCH_EVENT HOMEKIT_APPLE_UUID2("73")
+#define HOMEKIT_DECLARE_CHARACTERISTIC_PROGRAMMABLE_SWITCH_EVENT(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_PROGRAMMABLE_SWITCH_EVENT, \
+    .description = "Programmable Switch Event", \
+    .format = homekit_format_uint8, \
+    .permissions = homekit_permissions_paired_read \
+                 | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
+    .min_value = (const float[]) {0}, \
+    .max_value = (const float[]) {2}, \
+    .min_step = (const float[]) {1}, \
+    .valid_values = { \
+        .count = 3, \
+        .values = (const uint8_t[]) { 0, 1, 2 }, \
+    }, \
+    ##__VA_ARGS__
+#pragma endregion
+
 
 
 
@@ -1911,23 +1936,6 @@ enum HOMEKIT_TARGET_HEATER_COOLER_STATE
 #define HOMEKIT_DECLARE_CHARACTERISTIC_POSITION_STATE(_value, ...) \
     .type = HOMEKIT_CHARACTERISTIC_POSITION_STATE, \
     .description = "Position State", \
-    .format = homekit_format_uint8, \
-    .permissions = homekit_permissions_paired_read \
-                 | homekit_permissions_notify, \
-    .value = HOMEKIT_UINT8_(_value), \
-    .min_value = (const float[]) {0}, \
-    .max_value = (const float[]) {2}, \
-    .min_step = (const float[]) {1}, \
-    .valid_values = { \
-        .count = 3, \
-        .values = (const uint8_t[]) { 0, 1, 2 }, \
-    }, \
-    ##__VA_ARGS__
-
-#define HOMEKIT_CHARACTERISTIC_PROGRAMMABLE_SWITCH_EVENT HOMEKIT_APPLE_UUID2("73")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_PROGRAMMABLE_SWITCH_EVENT(_value, ...) \
-    .type = HOMEKIT_CHARACTERISTIC_PROGRAMMABLE_SWITCH_EVENT, \
-    .description = "Programmable Switch Event", \
     .format = homekit_format_uint8, \
     .permissions = homekit_permissions_paired_read \
                  | homekit_permissions_notify, \
