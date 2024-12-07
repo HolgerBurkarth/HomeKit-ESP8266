@@ -3,7 +3,7 @@
 $CRT 27 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>HomeKit_GarageDoorOpener.h<< 08 Okt 2024  17:46:33 - (c) proDAD
+$DAT >>HomeKit_GarageDoorOpener.h<< 07 Dez 2024  11:24:40 - (c) proDAD
 
 using namespace HBHomeKit::GarageDoorOpener;
 *******************************************************************/
@@ -187,6 +187,18 @@ struct CPositionMarkers
 
   #pragma endregion
 
+  #pragma region Defaults
+  static CPositionMarkers Defaults()
+  {
+    return
+    {
+      CPosRange{ 15, 150 }, CPosRange{ 250, 375 },
+      CTravelInfo{45,8,8}
+    };
+
+  }
+  #pragma endregion
+
   //END Methods
   #pragma endregion
 
@@ -346,9 +358,9 @@ struct CEventRecorder
   * @param sd The standard deviation of the position.
   * @param sigmaFactor The factor for the standard deviation.
   * @return The best position range or std::nullopt if the standard deviation is too high.
-  * @note The standard deviation must be less than 8.
+  * @note The standard deviation must be less than 12.
   */
-  std::optional<CRangeInt> TryGetStopPositionRange(const CStdDev& sd, float sigmaFactor = 6) const;
+  std::optional<CRangeInt> TryGetStopPositionRange(const CStdDev& sd, float sigmaFactor = 11) const;
 
   auto TryGetStopPositionRange() const { return TryGetStopPositionRange(PositionStdDev()); }
 

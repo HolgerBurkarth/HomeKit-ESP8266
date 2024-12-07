@@ -3,7 +3,7 @@
 $CRT 27 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>HomeKit_GarageDoorOpener.cpp<< 30 Sep 2024  06:33:20 - (c) proDAD
+$DAT >>HomeKit_GarageDoorOpener.cpp<< 07 Dez 2024  08:35:31 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -382,11 +382,7 @@ bool CPositionMarkers::EPROM_Load()
     Ret = false;
 
     // set default values
-    Data.Value =
-    {
-      CPosRange{ 10, 150 }, CPosRange{ 250, 500 },
-      CTravelInfo{45,8,8}
-    };
+    Data.Value = CPositionMarkers::Defaults();
   }
   *this = Data.Value;
   return Ret;
@@ -890,7 +886,8 @@ struct CDoorPositionSimulateUnit : CUnitBase
         Position = 1000;
     }
 
-    mMedianStack.push(Position); Position = mMedianStack.pop();
+    mMedianStack.push(Position);
+    Position = mMedianStack.median();
     //Position = mKalmanFilter.Update(Position);
 
     auto Pos = static_cast<pos_t>(std::min<int>(MaxValue, std::max<int>(MinValue, Position)));
@@ -1173,13 +1170,36 @@ IUnit_Ptr MakeContinuousEventRecorderUnit()
 //END
 #pragma endregion
 
-#pragma region CSR04UltrasonicSensorPositionUnit
-
-struct CSR04UltrasonicSensorPositionUnit : CUnitBase
+#pragma region +CSR04UltrasonicSensorPositionUnit - Implementation
+namespace SR04UltrasonicSensor
 {
-  #pragma region Types
-  using CDistanceStack = CMedianStack<uint16_t, 3>;
 
+#pragma region CMeasurementConfig
+struct CMeasurementConfig
+{
+  static constexpr uint32_t TickerInterval{ 1000 / 4 }; // 4Hz
+  static constexpr uint16_t MaxValidDistance{ 800 };    // [cm] 8m
+  static constexpr uint16_t MinValidDistance{ 6 };      // [cm] 6cm
+  static constexpr uint16_t DistancePerTime{ 58 };      // [cm/us] as 1cm = 58us
+  static constexpr uint16_t MedianDepth{ 7 };           // CMedianStack elements to calculate the median
+};
+
+#define SR04MeasurementMode_IRQ   1
+#define SR04MeasurementMode_Pulse 2
+
+#define SR04MeasurementMode SR04MeasurementMode_Pulse
+
+#pragma endregion
+
+#pragma region CMeasurementIRQ
+#if SR04MeasurementMode == SR04MeasurementMode_IRQ
+class CMeasurementIRQ
+{
+  static constexpr uint16_t MaxValidDistance = CMeasurementConfig::MaxValidDistance;
+  static constexpr uint16_t MinValidDistance = CMeasurementConfig::MinValidDistance;
+  static constexpr uint16_t DistancePerTime = CMeasurementConfig::DistancePerTime;
+
+  #pragma region Types
   enum class EMode : uint8_t
   {
     Idle,
@@ -1190,38 +1210,28 @@ struct CSR04UltrasonicSensorPositionUnit : CUnitBase
   #pragma endregion
 
   #pragma region Fields
-  static constexpr uint32_t TickerInterval{ 1000 / 8 }; // 8Hz
-  static constexpr uint16_t MaxValidDistance{ 1200 };   // [cm] 12m
-  static constexpr uint16_t MinValidDistance{ 2 };      // [cm] 2cm
-  static constexpr uint16_t DistancePerTime = 58;       // [cm/us] as 1cm = 58us
-
   const uint16_t TriggerPin{};
   const uint16_t EchoPin{};
 
-  CDistanceStack  mDistanceStack;
   uint32_t        mStartUS{}; // Start time of the measurement
   EMode           mMode{};    // Current mode
-  EMotorState     mLastMotorState{};
-  bool            mRelax{};
 
   static uint32_t EchoUS;
 
   #pragma endregion
 
   #pragma region Construction
-  CSR04UltrasonicSensorPositionUnit(CSR04UltrasonicSensorPositionParams p)
+public:
+  CMeasurementIRQ(CSR04UltrasonicSensorPositionParams p)
     : TriggerPin(p.TriggerPin), EchoPin(p.EchoPin)
-  {}
+  {
+  }
 
   #pragma endregion
 
-  #pragma region +Override IUnit Methods
-
   #pragma region Setup
-  void Setup(const CSetupArgs& args) override
+  void Setup()
   {
-    CUnitBase::Setup(args);
-
     pinMode(TriggerPin, OUTPUT);
     digitalWrite(TriggerPin, LOW);
 
@@ -1231,81 +1241,15 @@ struct CSR04UltrasonicSensorPositionUnit : CUnitBase
   #pragma endregion
 
   #pragma region Start
-  void Start(CVoidArgs&) override
+  void Start()
   {
     attachInterrupt(EchoPin, Echo_ISR, FALLING);
-
-    Ctrl->Ticker.Start(TickerInterval, [this](auto e) { OnMeasurementTick(e); });
     TryRestartMeasurement();
   }
   #pragma endregion
 
-  #pragma region QuerySensorData
-  void QuerySensorData(CSensorDataArgs& args) override
-  {
-    if(!mDistanceStack.empty())
-    {
-      auto Distance = mDistanceStack.pop();
-      args.Value.RawDoorPosition = Distance; // always set raw value
-      if(Distance >= MinValidDistance && Distance <= MaxValidDistance)
-        args.Value.DoorPosition = Distance; // only set valid value
-      args.Handled = true;
-    }
-  }
-  #pragma endregion
-
-  #pragma region WriteMotorInfo
-  void WriteMotorInfo(CMotorInfoArgs& args) override
-  {
-    EMotorState State = args.Value.Current.value_or(EMotorState::Unknown);
-    if(State != EMotorState::Unknown)
-    {
-      if(mLastMotorState != State)
-      {
-        mLastMotorState = State;
-
-        switch(State)
-        {
-          case EMotorState::Opening:
-          case EMotorState::Closing:
-            StartStress();
-            break;
-
-          case EMotorState::Stopped:
-            StartRelaxed();
-            break;
-        }
-
-      }
-    }
-  }
-  #pragma endregion
-
-
-
-  //END Override Methods
-  #pragma endregion
-
-  #pragma region +Measurement Methods
-
-  #pragma region OnMeasurementTick
-  void OnMeasurementTick(const CTicker::CEvent& e)
-  {
-    const uint32_t Calls = e.Calls;
-
-    if(mRelax)
-    {
-      constexpr uint32_t CallInterval = 1000 / TickerInterval;
-      if(Calls % CallInterval != 0)
-        return; // break frequency to 1Hz
-    }
-
-    Dispatch();
-  }
-  #pragma endregion
-
   #pragma region Dispatch
-  void Dispatch()
+  std::optional<uint16_t> Dispatch()
   {
     //Serial.printf("Dispatch %d\n", (int)mMode);
     switch(mMode)
@@ -1319,9 +1263,9 @@ struct CSR04UltrasonicSensorPositionUnit : CUnitBase
           auto Distance = CheckMesurement();
           if(Distance != 0)
           {
-            AddNewDistance(Distance);
             StartMesurement();
             mMode = EMode::Waiting;
+            return Distance;
           }
         }
         else if(mStartUS != 0)
@@ -1329,7 +1273,7 @@ struct CSR04UltrasonicSensorPositionUnit : CUnitBase
           uint32_t WaitingDurationUS = micros() - mStartUS;
           if(WaitingDurationUS > MaxValidDistance * DistancePerTime)
           {
-            WARN("No echo signal received - Restart measurement");
+            WARN("No SR04 echo signal received");
             goto L_Restart;
           }
         }
@@ -1341,8 +1285,12 @@ L_Restart:
         mMode = EMode::Waiting;
         break;
     }
+    return {};
   }
   #pragma endregion
+
+  #pragma region Private Methods
+private:
 
   #pragma region TryRestartMeasurement
   void TryRestartMeasurement()
@@ -1393,7 +1341,197 @@ L_Restart:
 
   #pragma endregion
 
-  //END Measurement Methods
+  //END Private Methods
+  #pragma endregion
+
+};
+
+uint32_t CMeasurementIRQ::EchoUS{};
+using CMeasurement = CMeasurementIRQ;
+#endif // SR04MeasurementMode == SR04MeasurementMode_IRQ
+#pragma endregion
+
+#pragma region CMeasurementPulse
+#if SR04MeasurementMode == SR04MeasurementMode_Pulse
+class CMeasurementPulse
+{
+  static constexpr uint16_t MaxValidDistance = CMeasurementConfig::MaxValidDistance;
+  static constexpr uint16_t MinValidDistance = CMeasurementConfig::MinValidDistance;
+  static constexpr uint16_t DistancePerTime = CMeasurementConfig::DistancePerTime;
+
+  #pragma region Fields
+  const uint16_t TriggerPin{};
+  const uint16_t EchoPin{};
+
+  #pragma endregion
+
+  #pragma region Construction
+public:
+  CMeasurementPulse(CSR04UltrasonicSensorPositionParams p)
+    : TriggerPin(p.TriggerPin), EchoPin(p.EchoPin)
+  {
+  }
+
+  #pragma endregion
+
+  #pragma region Setup
+  void Setup()
+  {
+    pinMode(TriggerPin, OUTPUT);
+    digitalWrite(TriggerPin, LOW);
+
+    pinMode(EchoPin, INPUT);
+  }
+
+  #pragma endregion
+
+  #pragma region Start
+  void Start()
+  {
+  }
+  #pragma endregion
+
+  #pragma region Dispatch
+  std::optional<uint16_t> Dispatch()
+  {
+    const auto MaxWaitTime = MaxValidDistance * DistancePerTime;
+
+    digitalWrite(TriggerPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TriggerPin, HIGH);
+    delayMicroseconds(10);
+    noInterrupts(); // disable interrupts
+    digitalWrite(TriggerPin, LOW);
+    
+    // Reads the echoPin, returns the sound wave travel time in microseconds
+    long duration = pulseIn(EchoPin, HIGH, MaxWaitTime+10); 
+    interrupts(); // enable interrupts
+    
+    if(duration == 0 || duration >= MaxWaitTime)
+    {
+      WARN("No SR04 echo signal received");
+      return {};
+    }
+    
+    uint16_t distance = duration / DistancePerTime;
+    return distance;
+  }
+  #pragma endregion
+
+};
+
+using CMeasurement = CMeasurementPulse;
+#endif // SR04MeasurementMode == SR04MeasurementMode_Pulse
+#pragma endregion
+
+
+#pragma region struct CSR04UltrasonicSensorPositionUnit
+struct CSR04UltrasonicSensorPositionUnit : CUnitBase, CMeasurement
+{
+  #pragma region Types
+  using CDistanceStack = CMedianStack<uint16_t, CMeasurementConfig::MedianDepth>;
+
+  #pragma endregion
+
+  #pragma region Fields
+  static constexpr uint32_t TickerInterval = CMeasurementConfig::TickerInterval;
+  static constexpr uint16_t MaxValidDistance = CMeasurementConfig::MaxValidDistance;
+  static constexpr uint16_t MinValidDistance = CMeasurementConfig::MinValidDistance;
+
+  CDistanceStack  mDistanceStack;
+  EMotorState     mLastMotorState{};
+  bool            mRelax{};
+
+  #pragma endregion
+
+  #pragma region Construction
+  CSR04UltrasonicSensorPositionUnit(CSR04UltrasonicSensorPositionParams p)
+    : CMeasurement(p)
+  {
+  }
+
+  #pragma endregion
+
+  #pragma region +Override IUnit Methods
+
+  #pragma region Setup
+  void Setup(const CSetupArgs& args) override
+  {
+    CUnitBase::Setup(args);
+    CMeasurement::Setup();
+  }
+
+  #pragma endregion
+
+  #pragma region Start
+  void Start(CVoidArgs&) override
+  {
+    Ctrl->Ticker.Start(TickerInterval, [this](auto e) { OnMeasurementTick(e); });
+    CMeasurement::Start();
+  }
+  #pragma endregion
+
+  #pragma region QuerySensorData
+  void QuerySensorData(CSensorDataArgs& args) override
+  {
+    if(mDistanceStack.has_median())
+    {
+      auto Distance = mDistanceStack.median();
+      args.Value.RawDoorPosition = Distance; // always set raw value
+      if(Distance >= MinValidDistance && Distance <= MaxValidDistance)
+        args.Value.DoorPosition = Distance; // only set valid value
+      args.Handled = true;
+    }
+  }
+  #pragma endregion
+
+  #pragma region WriteMotorInfo
+  void WriteMotorInfo(CMotorInfoArgs& args) override
+  {
+    EMotorState State = args.Value.Current.value_or(EMotorState::Unknown);
+    if(State != EMotorState::Unknown)
+    {
+      if(mLastMotorState != State)
+      {
+        mLastMotorState = State;
+
+        switch(State)
+        {
+          case EMotorState::Opening:
+          case EMotorState::Closing:
+            StartStress();
+            break;
+
+          case EMotorState::Stopped:
+            StartRelaxed();
+            break;
+        }
+
+      }
+    }
+  }
+  #pragma endregion
+
+
+  //END Override Methods
+  #pragma endregion
+
+  #pragma region OnMeasurementTick
+  void OnMeasurementTick(const CTicker::CEvent& e)
+  {
+    const uint32_t Calls = e.Calls;
+
+    if(mRelax)
+    {
+      constexpr uint32_t CallInterval = 1000 / TickerInterval;
+      if(Calls % CallInterval != 0)
+        return; // break frequency to 1Hz
+    }
+
+    auto NewDistance = Dispatch();
+    if(NewDistance)
+      AddNewDistance(*NewDistance);
+  }
   #pragma endregion
 
   #pragma region AddNewDistance
@@ -1429,12 +1567,14 @@ L_Restart:
 
 };
 
-uint32_t CSR04UltrasonicSensorPositionUnit::EchoUS;
+//END struct CSR04UltrasonicSensorPositionUnit
+#pragma endregion
 
+} // namespace SR04UltrasonicSensor
 
 IUnit_Ptr MakeSR04UltrasonicSensorPositionUnit(CSR04UltrasonicSensorPositionParams p)
 {
-  return std::make_shared<CSR04UltrasonicSensorPositionUnit>(p);
+  return std::make_shared<SR04UltrasonicSensor::CSR04UltrasonicSensorPositionUnit>(p);
 }
 
 //END CSR04UltrasonicSensorPositionUnit

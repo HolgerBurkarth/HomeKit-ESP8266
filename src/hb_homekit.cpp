@@ -2496,7 +2496,7 @@ void CHomeKit::Loop()
   * This improves pairing by eliminating time-consuming functions.
   * It also calls processing functions only when they are applicable.
   */
-  Controller.Loop(IsPaired());
+  Controller.Loop(IsPaired() || NoPairingRequired());
 
   const uint32_t CurTick = millis();
   mLEDTimer.OnTick(CurTick);

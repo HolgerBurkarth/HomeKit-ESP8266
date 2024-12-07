@@ -3,7 +3,7 @@
 $CRT 09 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.h<< 06 Dez 2024  09:30:58 - (c) proDAD
+$DAT >>hb_homekit.h<< 07 Dez 2024  08:31:35 - (c) proDAD
 
 using namespace HBHomeKit;
 *******************************************************************/
@@ -125,6 +125,17 @@ public:
 
   #pragma endregion
 
+  #pragma region has_median
+  /* Checks if there are enough elements to evaluate the median.
+  * @return true if there are enough elements, false otherwise
+  */
+  bool has_median() const
+  {
+    return Count >= MaxElements;
+  }
+
+  #pragma endregion
+
   #pragma region clear
   /* Clear the stack.
   */
@@ -154,12 +165,12 @@ public:
 
   #pragma endregion
 
-  #pragma region pop
+  #pragma region median
   /* Get the median of the values in the stack.
   * @return The median of the values in the stack
   * @note If the stack is empty, the return value is the default value of T.
   */
-  T pop() const
+  T median() const
   {
     if(Count > 0)
     {
@@ -3654,6 +3665,7 @@ class CHomeKit
   uint32_t    mLastHtmlRequestMS{};
   bool        mHomeKitServerStarted{};
   bool        mEnergySavingEnabled{true};
+  bool        mNoPairingRequired{}; // True if all features are available without pairing (e.g. Ticker)
 
   static bool mIsPaired; // True if HomeKit is paired (with Apple)
   #pragma endregion
@@ -3834,6 +3846,23 @@ public:
   {
     mEnergySavingEnabled = false;
   }
+  #pragma endregion
+
+  #pragma region NoPairingRequired
+  /* Gets whether pairing is required.
+  * Default = false
+  * @note If true, all features are available without pairing (e.g. Ticker)
+  * @note Helpful for working independently of HomeKit during development.
+  */
+  bool NoPairingRequired() const
+  {
+    return mNoPairingRequired;
+  }
+  void SetNoPairingRequired(bool value = true)
+  {
+    mNoPairingRequired = value;
+  }
+
   #pragma endregion
 
 
