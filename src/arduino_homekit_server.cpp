@@ -1245,17 +1245,17 @@ void write_characteristic_json(json_stream* json, client_context_t* client,
 #pragma endregion
 
 #pragma region write
-void write(client_context_t* context, byte* data, int data_size)
+bool write(client_context_t* context, byte* data, int data_size)
 {
   if((!context) || (!context->socket) || (!context->socket->connected()))
   {
     CLIENT_ERROR(context, "The socket is null! (or is closed)");
-    return;
+    return false;
   }
   if(context->error_write)
   {
     CLIENT_ERROR(context, "Abort write data since error_write.");
-    return;
+    return false;
   }
   int write_size = context->socket->write(data, data_size);
   CLIENT_DEBUG(context, "Sending data of size %d", data_size);
@@ -1273,8 +1273,9 @@ void write(client_context_t* context, byte* data, int data_size)
     // We consider the socket is 'closed' when error in writing (e.g. the remote client is disconnected, NO tcp ack receive).
     // Closing the socket causes memory-leak if some data has not been sent (the write_buffer did not free)
     // To fix this memory-leak, add tcp_abandon(_pcb, 0); in ClientContext.h of ESP8266WiFi-library.
+    return false;
   }
-
+  return true;
 }
 
 #pragma endregion
@@ -1332,7 +1333,8 @@ int client_send_encrypted_(client_context_t* context, byte* payload, size_t size
 
     payload_offset += chunk_size;
 
-    write(context, encrypted, available + 2);
+    if(!write(context, encrypted, available + 2))
+      return -1;
   }
 
   return 0;
@@ -1437,9 +1439,8 @@ void client_notify_characteristic(homekit_characteristic_t* ch, homekit_value_t 
 #pragma endregion
 
 #pragma region client_send
-void client_send(client_context_t* context, byte* data, size_t data_size)
+bool client_send(client_context_t* context, byte* data, size_t data_size)
 {
-
   CLIENT_DEBUG(context, "send data size=%d, encrypted=%s",
     data_size, context->encrypted ? "true" : "false");
 
@@ -1449,22 +1450,23 @@ void client_send(client_context_t* context, byte* data, size_t data_size)
     if(r)
     {
       CLIENT_ERROR(context, "Failed to encrypt response (code %d)", r);
-      return;
+      return false;
     }
+    return true;
   }
   else
   {
-    write(context, data, data_size);
+    return write(context, data, data_size);
   }
 }
 
 #pragma endregion
 
 #pragma region client_send_P
-void client_send_P(client_context_t* context, PGM_P pgm)
+bool client_send_P(client_context_t* context, PGM_P pgm)
 {
   XPGM_BUFFCPY_STRING(char, buff, pgm);
-  client_send(context, (byte*)buff, sizeof(buff) - 1);
+  return client_send(context, (byte*)buff, sizeof(buff) - 1);
 }
 
 #pragma endregion
@@ -1483,30 +1485,31 @@ void client_send_chunk(byte* data, size_t size, void* arg)
   }
 
   int offset = snprintf((char*)payload, payload_size, "%x\r\n", size);
+  bool Ret;
   memcpy(payload + offset, data, size);
   payload[offset + size] = '\r';
   payload[offset + size + 1] = '\n';
   CLIENT_DEBUG(context, "client_send_chunk, size=%d, offset=%d", size, offset);
-  client_send(context, payload, offset + size + 2);
+  Ret = client_send(context, payload, offset + size + 2);
   free(payload);
 }
 
 #pragma endregion
 
 #pragma region send_204_response
-void send_204_response(client_context_t* context)
+bool send_204_response(client_context_t* context)
 {
   static const char PROGMEM response[] = "HTTP/1.1 204 No Content\r\n\r\n";
-  client_send_P(context, response);
+  return client_send_P(context, response);
 }
 
 #pragma endregion
 
 #pragma region send_404_response
-void send_404_response(client_context_t* context)
+bool send_404_response(client_context_t* context)
 {
   static const char PROGMEM response[] = "HTTP/1.1 404 Not Found\r\n\r\n";
-  client_send_P(context, response);
+  return client_send_P(context, response);
 }
 
 #pragma endregion

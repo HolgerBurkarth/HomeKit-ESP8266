@@ -3,7 +3,7 @@
 $CRT 10 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.cpp<< 14 Okt 2024  06:28:54 - (c) proDAD
+$DAT >>hb_homekit.cpp<< 10 Dez 2024  09:20:35 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -392,8 +392,28 @@ template<> homekit_value_t homekit_value_cast<int>(const homekit_value_t& value)
     return static_value_cast<int>(static_value_cast<float>(value));
   else if(is_value_typeof<bool>(value))
     return static_value_cast<int>(static_value_cast<bool>(value) ? 1 : 0);
+  else if(is_value_typeof<uint8>(value))
+    return static_value_cast<int>(static_value_cast<uint8>(value));
+  else if(is_value_typeof<uint16>(value))
+    return static_value_cast<int>(static_value_cast<uint16>(value));
 
   return homekit_value_t{};
+}
+#pragma endregion
+
+#pragma region homekit_value_cast<unit8_t>
+template<> homekit_value_t homekit_value_cast<uint8_t>(const homekit_value_t& value) noexcept
+{
+  int v = static_value_cast<int>(homekit_value_cast<int>(value));
+  return static_value_cast<uint8_t>(v);
+}
+#pragma endregion
+
+#pragma region homekit_value_cast<unit16_t>
+template<> homekit_value_t homekit_value_cast<uint16_t>(const homekit_value_t& value) noexcept
+{
+  int v = static_value_cast<int>(homekit_value_cast<int>(value));
+  return static_value_cast<uint16_t>(v);
 }
 #pragma endregion
 
@@ -1937,7 +1957,7 @@ void CController::InstallStdCMDs()
     {
       ESP.reset();
     });
-  InstallCmd("RESET_PAIRING", "Reset Pairing", CmdAttr_FirstSendPage, [](auto)
+  InstallCmd("RESET_PAIRING", CmdAttr_FirstSendPage, [](auto)
     {
       homekit_storage_reset();
       ESP.reset();
@@ -1958,6 +1978,10 @@ void CController::InstallStdCMDs()
 #pragma region InstallStdVariables
 void CController::InstallStdVariables()
 {
+  if(!smart_gmtime(&mBootTimeInfo))
+    mBootTimeInfo.tm_year = 0;
+  
+
   #pragma region LOCAL_IP
   SetVar("LOCAL_IP", [this](auto)
     {
@@ -2092,6 +2116,19 @@ void CController::InstallStdVariables()
       }
     });
 
+  #pragma endregion
+  #pragma region BOOT_DATETIME
+  SetVar("BOOT_DATETIME", [this](auto)
+    {
+      char TimeStamp[48];
+      if(mBootTimeInfo.tm_year == 0)
+        return MakeTextEmitter(F("????-??-??  ??:??:??"));
+      else
+      {
+        strftime(TimeStamp, sizeof(TimeStamp), "%Y-%m-%d  %H:%M:%S", &mBootTimeInfo);
+        return MakeTextEmitter(TimeStamp);
+      }
+    });
   #pragma endregion
 
 

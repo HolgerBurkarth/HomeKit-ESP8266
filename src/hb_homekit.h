@@ -3,7 +3,7 @@
 $CRT 09 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_homekit.h<< 07 Dez 2024  08:31:35 - (c) proDAD
+$DAT >>hb_homekit.h<< 10 Dez 2024  09:27:59 - (c) proDAD
 
 using namespace HBHomeKit;
 *******************************************************************/
@@ -671,6 +671,7 @@ template<> constexpr homekit_value_t static_value_cast<HOMEKIT_PROGRAMMABLE_SWIT
 /* Reads the homekit_value_t contained in homekit_characteristic_t directly,
 * or uses a getter that may be present.
 * @param ch The characteristic to cast, nullptr is tolerated
+* @note getter_ex is supported
 */
 homekit_value_t homekit_value_cast(const homekit_characteristic_t* ch);
 
@@ -748,15 +749,28 @@ constexpr T safe_value_cast(const homekit_characteristic_t* ch) noexcept
 * @param value The value to convert
 * @return The value of the homekit_value_t as the specific type
 * @note Supported Types see homekit_value_cast<T>(const homekit_value_t&)
+* @note getter_ex is supported
 * @example
 *   homekit_value_t TextValue = static_value_cast<const char*>("TRUE");
 *   ...
 *   bool b = convert_value<bool>(TextValue);
+* 
+* - or -
+* 
+*   extern homekit_characteristic_t Ch;
+*   ...
+*   bool b = convert_value<bool>(&Ch);
 */
 template<typename T>
 T convert_value(const homekit_value_t& value) noexcept
 {
   return static_value_cast<T>(homekit_value_cast<T>(value));
+}
+
+template<typename T>
+T convert_value(const homekit_characteristic_t* ch) noexcept
+{
+  return static_value_cast<T>(homekit_value_cast(ch));
 }
 
 #pragma endregion
@@ -1804,6 +1818,23 @@ public:
 
   #pragma endregion
 
+  #pragma region CAccessory<1>(...)
+  /* Create a HomeKit accessory with a fixed number of services
+  * @param accessory The accessory definition
+  * @param s0, ... The services of the accessory
+  */
+  template<typename T = void, typename = std::enable_if_t<Service_Count == 1, T>>
+  constexpr CAccessory
+  (
+    const homekit_accessory_t& accessory,
+    const homekit_service_t* s0
+  ) noexcept
+    : CAccessory{ accessory, { s0 } }
+  {
+  }
+
+  #pragma endregion
+
   #pragma region CAccessory<2>(...)
   /* Create a HomeKit accessory with a fixed number of services
   * @param accessory The accessory definition
@@ -1966,6 +1997,22 @@ public:
   {}
 
   #pragma endregion
+
+  #pragma region CConfig<3>(...)
+  template<typename T = void, typename = std::enable_if_t<Accessory_Count == 3, T>>
+  constexpr CConfig
+  (
+    const homekit_server_config_t& config,
+    const homekit_accessory_t* a0,
+    const homekit_accessory_t* a1,
+    const homekit_accessory_t* a2
+  ) noexcept
+    : CConfig{ config, { a0, a1, a2 } }
+  {
+  }
+
+  #pragma endregion
+
 
 
   //END Construction
@@ -2648,6 +2695,7 @@ private:
   String                  mFirmwareUpdateURL;
   IHtmlWebSiteBuilder_Ptr mBuilder;
   CWiFiConnection&        mWifiConnection;
+  tm                      mBootTimeInfo{};
 
   /* Selected menu item index.
   * In the range of [0 .. mMenuItems.size()-1]
@@ -3087,6 +3135,9 @@ public:
   * - TIME
   *  The current time (HH:MM:SS)
   *
+  * - BOOT_DATETIME
+  *   Time of booting the device (YYYY-MM-DD HH:MM:SS)
+  * 
   * - FORMAT_FILESYSTEM
   *  Formats the file system. @see CSimpleFileSystem
   *
@@ -3770,6 +3821,52 @@ public:
     , mLEDTimer{ 100, &UpdateBuildInLED }
   {
     Singleton = this;
+  }
+  #pragma endregion
+
+  #pragma region CHomeKit(&Accessory, &Device, ...)
+  /*
+  * @example
+    CSensorService Sensor{ ... };
+
+    const CDeviceService Device
+    {
+      .DeviceName{"Sensor"},
+      .FirmwareRevision{"1.0.5"},
+      .FirmwareUpdateURL{"http://www.sample.de/esp8266/firmware.bin"}
+    };
+
+    const CAccessory<3> gbAccessory
+    {
+      {
+        .category = homekit_accessory_category_sensor,
+      },
+
+      &Device,
+      Sensor[0],
+      Sensor[1]
+    };
+
+    CHomeKit HomeKit(&gbAccessory, Device);
+
+  */
+  CHomeKit
+  (
+    const homekit_accessory_t* pAccessory,
+    const CDeviceService& device,
+    CWiFiConnection::CParams wifiPass = {},
+    IHtmlWebSiteBuilder_Ptr builder = CreateHtmlWebSiteBuilder()
+  )
+    : mInnerConfig{ {.password = "111-11-111"}, pAccessory }
+    , mConfig(&mInnerConfig)
+    , WifiConnection(std::move(wifiPass))
+    , Controller(WifiConnection, std::move(builder))
+    , mLEDTimer{ 100, &UpdateBuildInLED }
+  {
+    Singleton = this;
+
+    if(device.FirmwareUpdateURL != nullptr)
+      Controller.SetFirmwareUpdateURL(device.FirmwareUpdateURL);
   }
 
   #pragma endregion

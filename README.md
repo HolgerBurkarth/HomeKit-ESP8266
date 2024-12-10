@@ -178,8 +178,11 @@ Read more: [Garage Door Opener Project](./examples/GarageDoor/README.md)
 
 ### Change Log
 
-#### v2.0.4 (2024-12-06)
+#### v2.0.4 (2024-12-10)
 * The ability to update firmware via a URL. (Firmware is the executable image).
+* Evolution to improve position measurement with the SR04 sensor.
+* Device information notices booting
+* Switch sample revised
 
 #### v2.0.3 (2024-10-11)
 * Support and examples for a heater/cooler/thermostat (temperature, humidity, etc.)

@@ -1113,29 +1113,18 @@ enum HOMEKIT_CARBON_DIOXIDE_DETECTED
 
 #pragma endregion
 
-#pragma region HOMEKIT_DECLARE_CHARACTERISTIC_PROGRAMMABLE_SWITCH_EVENT
-enum HOMEKIT_PROGRAMMABLE_SWITCH_EVENT
-{
-  HOMEKIT_PROGRAMMABLE_SWITCH_EVENT_SINGLE_PRESS  = 0,
-  HOMEKIT_PROGRAMMABLE_SWITCH_EVENT_DOUBLE_PRESS  = 1,
-  HOMEKIT_PROGRAMMABLE_SWITCH_EVENT_LONG_PRESS    = 2,
-};
-#define HOMEKIT_CHARACTERISTIC_PROGRAMMABLE_SWITCH_EVENT HOMEKIT_APPLE_UUID2("73")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_PROGRAMMABLE_SWITCH_EVENT(_value, ...) \
-    .type = HOMEKIT_CHARACTERISTIC_PROGRAMMABLE_SWITCH_EVENT, \
-    .description = "Programmable Switch Event", \
+#pragma region HOMEKIT_DECLARE_CHARACTERISTIC_SERVICE_LABEL_INDEX
+#define HOMEKIT_CHARACTERISTIC_SERVICE_LABEL_INDEX HOMEKIT_APPLE_UUID2("CB")
+#define HOMEKIT_DECLARE_CHARACTERISTIC_SERVICE_LABEL_INDEX(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_SERVICE_LABEL_INDEX, \
+    .description = "Service Label Index", \
     .format = homekit_format_uint8, \
-    .permissions = homekit_permissions_paired_read \
-                 | homekit_permissions_notify, \
+    .permissions = homekit_permissions_paired_read, \
     .value = HOMEKIT_UINT8_(_value), \
-    .min_value = (const float[]) {0}, \
-    .max_value = (const float[]) {2}, \
+    .min_value = (const float[]) {1}, \
     .min_step = (const float[]) {1}, \
-    .valid_values = { \
-        .count = 3, \
-        .values = (const uint8_t[]) { 0, 1, 2 }, \
-    }, \
     ##__VA_ARGS__
+
 #pragma endregion
 
 
@@ -1513,6 +1502,32 @@ enum HOMEKIT_CURRENT_HEATING_COOLING_STATE //: uint8_t
     .value = HOMEKIT_BOOL_(_value), \
     ##__VA_ARGS__
 
+#pragma endregion
+
+#pragma region HOMEKIT_DECLARE_CHARACTERISTIC_PROGRAMMABLE_SWITCH_EVENT
+enum HOMEKIT_PROGRAMMABLE_SWITCH_EVENT
+{
+  HOMEKIT_PROGRAMMABLE_SWITCH_EVENT_UNDEF = -1, // Undefined - don't use
+  HOMEKIT_PROGRAMMABLE_SWITCH_EVENT_SINGLE_PRESS = 0,
+  HOMEKIT_PROGRAMMABLE_SWITCH_EVENT_DOUBLE_PRESS = 1,
+  HOMEKIT_PROGRAMMABLE_SWITCH_EVENT_LONG_PRESS = 2,
+};
+#define HOMEKIT_CHARACTERISTIC_PROGRAMMABLE_SWITCH_EVENT HOMEKIT_APPLE_UUID2("73")
+#define HOMEKIT_DECLARE_CHARACTERISTIC_PROGRAMMABLE_SWITCH_EVENT(_dsc, _value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_PROGRAMMABLE_SWITCH_EVENT, \
+    .description = _dsc, \
+    .format = homekit_format_uint8, \
+    .permissions = homekit_permissions_paired_read \
+                 | homekit_permissions_notify, \
+    .value = HOMEKIT_UINT8_(_value), \
+    .min_value = (const float[]) {0}, \
+    .max_value = (const float[]) {2}, \
+    .min_step = (const float[]) {1}, \
+    .valid_values = { \
+        .count = 3, \
+        .values = (const uint8_t[]) { 0, 1, 2 }, \
+    }, \
+    ##__VA_ARGS__
 #pragma endregion
 
 #pragma region HOMEKIT_DECLARE_CHARACTERISTIC_OUTLET_IN_USE
@@ -2503,17 +2518,6 @@ enum HOMEKIT_TARGET_HEATER_COOLER_STATE
     .value = HOMEKIT_FLOAT_(_value), \
     .min_value = (const float[]) {0}, \
     .max_value = (const float[]) {1000}, \
-    ##__VA_ARGS__
-
-#define HOMEKIT_CHARACTERISTIC_SERVICE_LABEL_INDEX HOMEKIT_APPLE_UUID2("CB")
-#define HOMEKIT_DECLARE_CHARACTERISTIC_SERVICE_LABEL_INDEX(_value, ...) \
-    .type = HOMEKIT_CHARACTERISTIC_SERVICE_LABEL_INDEX, \
-    .description = "Service Label Index", \
-    .format = homekit_format_uint8, \
-    .permissions = homekit_permissions_paired_read, \
-    .value = HOMEKIT_UINT8_(_value), \
-    .min_value = (const float[]) {1}, \
-    .min_step = (const float[]) {1}, \
     ##__VA_ARGS__
 
 #define HOMEKIT_CHARACTERISTIC_SERVICE_LABEL_NAMESPACE HOMEKIT_APPLE_UUID2("CD")

@@ -3,11 +3,11 @@
 $CRT 18 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_device_menu.cpp<< 05 Dez 2024  10:04:50 - (c) proDAD
+$DAT >>hb_device_menu.cpp<< 10 Dez 2024  09:28:44 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
-// Ignore Spelling: firmwareupdate
+// Ignore Spelling: firmwareupdate boottime
 #pragma endregion
 #pragma region Includes
 #include <Arduino.h>
@@ -187,7 +187,6 @@ CController& AddDeviceMenu(CController& c)
     //END Variables
     #pragma endregion
 
-
     #pragma region Menu
     .AddMenuItem
     (
@@ -202,9 +201,27 @@ CController& AddDeviceMenu(CController& c)
         {
           out << ActionUI_JavaScript();
           out << F(R"(
+var LastBootTime = '';
+
 function SetDiv(divID, value)
 {
   document.getElementById(divID).innerHTML = value;
+}
+
+function OnBootTime(responseText)
+{
+  if(responseText != LastBootTime)
+  {
+    LastBootTime = responseText;
+    SetDiv('boottime', responseText);
+
+    /* After Reboot... */
+    ForVar('FIRMWARE', responseText => SetDiv('firmware', responseText) );
+    ForVar('IS_PAIRED', responseText => SetDiv('paired', responseText) );
+    ForVar('REMOTE_IP', responseText => SetDiv('remot_ip', responseText) );
+    ForVar('LOCAL_IP', responseText => SetDiv('local_ip', responseText) );
+
+  }
 }
 
 function OnStartUpdateFirmware()
@@ -214,17 +231,31 @@ function OnStartUpdateFirmware()
 }
 
 
-onload = function()
+
+window.addEventListener('load', (event) =>
 {
-  setInterval(function()
-    {
-      ForVar('DATE', responseText => SetDiv('date', responseText) );
+  setInterval
+  ( 
+    function() 
+    { 
       ForVar('TIME', responseText => SetDiv('time', responseText) );
-      ForVar('CLIENT_COUNT', responseText => SetDiv('clients', '#' + responseText + ' clients') );
-      ForVar('FIRMWARE', responseText => SetDiv('firmware', responseText) );
       ForVar('FIRMWARE_UPDATE_STA', responseText => SetDiv('firmwareupdate', responseText) );
-    }, 1000);
-};
+    },
+    1000
+  );
+
+  setInterval
+  ( 
+    function() 
+    { 
+      ForVar('DATE', responseText => SetDiv('date', responseText) );
+      ForVar('BOOT_DATETIME', responseText => OnBootTime(responseText) );
+      ForVar('CLIENT_COUNT', responseText => SetDiv('clients', '#' + responseText + ' clients') );
+    },
+    5000
+  );
+
+});
 
 )");
         },
@@ -233,13 +264,14 @@ onload = function()
           out << F(R"(
 {PARAM_TABLE_BEGIN}
 <tr><th>Device Name</th><td>{DEVICE_NAME}</td></tr>
+<tr><th>Booting UTC</th><td><div id='boottime'>{BOOT_DATETIME}</div></td></tr>
 <tr><th>UTC Date</th><td><div id='date'>{DATE}</div></td></tr>
 <tr><th>UTC Time</th><td><div id='time'>{TIME}</div></td></tr>
-<tr><th>Paired with HK</th><td>{IS_PAIRED}</td></tr>
-<tr><th>Connected with</th><td><div id='clients'>#% clients</div></td></tr>
+<tr><th>Paired with HK</th><td><div id='paired'>{IS_PAIRED}</div></td></tr>
+<tr><th>Connected with</th><td><div id='clients'>#{CLIENT_COUNT} clients</div></td></tr>
 
-<tr><th>Remote IP</th><td>{REMOTE_IP}</td></tr>
-<tr><th>Device IP</th><td>{LOCAL_IP}</td></tr>
+<tr><th>Remote IP</th><td><div id='remot_ip'>{REMOTE_IP}</div></td></tr>
+<tr><th>Device IP</th><td><div id='local_ip'>{LOCAL_IP}</div></td></tr>
 <tr><th>MAC</th><td>{MAC}</td></tr>
 <tr><th>Model</th><td>{MODEL}</td></tr>
 <tr><th>Manufacturer</th><td>{MANUFACTURER}</td></tr>
