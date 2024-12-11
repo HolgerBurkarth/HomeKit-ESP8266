@@ -3,7 +3,7 @@
 $CRT 17 Sep 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>hb_wifi_menu.cpp<< 02 Okt 2024  07:41:03 - (c) proDAD
+$DAT >>hb_wifi_menu.cpp<< 11 Dez 2024  15:45:54 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -263,6 +263,14 @@ struct CWifiLoginContext : IPasswordEnumerator
 #pragma region AddWiFiLoginMenu
 } // namespace
 
+
+void SaveWiFiLogin(String ssid, String password)
+{
+  auto Ctx = std::make_shared<CWifiLoginContext>();
+  Ctx->SetFirstSSID(std::move(ssid));
+  Ctx->SetFirstPassword(std::move(password));
+  Ctx->SaveToEEPROM();
+}
 
 CController& AddWiFiLoginMenu(CController& c, bool alwaysUsePeristentLogin)
 {

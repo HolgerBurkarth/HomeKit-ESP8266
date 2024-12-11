@@ -1,9 +1,9 @@
 #pragma region Prolog
 /*******************************************************************
-$CRT 03 Okt 2024 : hb
+$CRT 11 Dez 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>Switch.h<< 11 Dez 2024  15:39:39 - (c) proDAD
+$DAT >>StatelessSwitch.h<< 11 Dez 2024  16:24:30 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -30,7 +30,7 @@ using namespace HBHomeKit::Switch;
 /*
 * @brief
 */
-#define SWITCHER_PIN  D2
+#define SWITCHER_PIN  D7
 
 
 #pragma endregion
@@ -55,26 +55,9 @@ const CDeviceService Device
 /*
 * @brief Switcher as a service for HomeKit
 */
-CSwitchService Switcher
+CStatelessSwitchService StatelessSwitch
 ({
-  .Name = "Switch",
-#if 1
-   .Setter = [](homekit_characteristic_t* pC, homekit_value_t value)
-  {
-    VERBOSE("Switch::Setter");
-    if(modify_value(pC, value))
-    {
-      bool Stat = static_value_cast<bool>(value);
-      digitalWrite(SWITCHER_PIN, Stat ? HIGH : LOW);
-    }
-  },
-  #else
-  .Getter = [](const homekit_characteristic_t* pC) -> homekit_value_t
-  {
-    VERBOSE("Switch::Getter");
-    return static_value_cast<bool>(digitalRead(SWITCHER_PIN) == HIGH);
-  }
-  #endif
+  .Name = "SlessSwitch",
   });
 
 /*
@@ -83,9 +66,11 @@ CSwitchService Switcher
 CHomeKit HomeKit
 (
   Device,
-  homekit_accessory_category_switch,
-  &Switcher
+  homekit_accessory_category_programmable_switch,
+  &StatelessSwitch
 );
+
+CPrgSwitchEventHandler gbEventHandler(SWITCHER_PIN, StatelessSwitch);
 
 #pragma endregion
 
@@ -97,12 +82,10 @@ void setup()
 	delay(500); // Important for ESP32: Wait until the serial interface is ready
 	Serial.println("\n\n\nEnter Setup");
 
-  pinMode(SWITCHER_PIN, OUTPUT);
-
-
   // Installs and configures everything for Switcher.
   InstallVarsAndCmds(HomeKit);
   AddMenuItems(HomeKit);
+  gbEventHandler.Setup(HomeKit);
 
   // Adds a menu (WiFi) that allows the user to connect to a WiFi network.
   AddWiFiLoginMenu(HomeKit);

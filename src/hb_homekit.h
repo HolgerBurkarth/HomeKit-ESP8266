@@ -4303,8 +4303,19 @@ std::vector<String> Split(const String& text, char sep);
 *   installed enumerator.
 *
 * @see CWiFiConnection::SetPasswordEnumerator
+* @see SaveWiFiLogin
 */
 CController& AddWiFiLoginMenu(CController&, bool alwaysUsePeristentLogin = true);
+
+#pragma endregion
+
+#pragma region
+/* Save the WiFi login data to EEPROM.
+* @param ssid The SSID of the WiFi network.
+* @param password The password of the WiFi network.
+* @see AddWiFiLoginMenu
+*/
+void SaveWiFiLogin(String ssid, String password);
 
 #pragma endregion
 

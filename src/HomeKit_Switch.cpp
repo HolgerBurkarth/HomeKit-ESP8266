@@ -3,7 +3,7 @@
 $CRT 08 Dez 2024 : hb
 
 $AUT Holger Burkarth
-$DAT >>HomeKit_Switch.cpp<< 10 Dez 2024  16:29:12 - (c) proDAD
+$DAT >>HomeKit_Switch.cpp<< 11 Dez 2024  09:56:23 - (c) proDAD
 *******************************************************************/
 #pragma endregion
 #pragma region Spelling
@@ -82,6 +82,7 @@ CTextEmitter Switch_JavaScript()
 // vector of all switches
 var SwitchNames = [];
 var SwitchTypes = [];
+var AddUIElement = function(name, type, state) {};
 
 function UIUpdateSwitch(name, state)
 {
@@ -98,7 +99,7 @@ function SetStatelessSwitch(name, state)
   ForSetVar('SWITCH_STATE', name + '|' + state, responseText => {} );
 }
 
-function Update()
+function UpdateUI()
 {
   for(var i = 0; i < SwitchNames.length; ++i)
   {
@@ -113,6 +114,39 @@ function Update()
   }
 }
 
+function AddCheckbox(cell, name)
+{
+  var Label = document.createElement('label');
+  Label.className = 'checkbox';
+  cell.appendChild(Label);
+
+  var Input = document.createElement('input');
+  Input.id = name + 'Checkbox';
+  Input.type = 'checkbox';
+  Input.onclick = function() { SetSwitch(name, this.checked); };
+  Label.appendChild(Input);
+
+  var Span = document.createElement('span');
+  Span.className = 'slider round';
+  Label.appendChild(Span);
+}
+
+function AddButton(cell, name, text, type)
+{
+  var Button = document.createElement('button');
+  Button.innerHTML = text;
+  Button.onclick = function() { SetSwitch(name, type); };
+  cell.appendChild(Button);
+}
+
+function AddEmptyRow(table)
+{
+  var Row = table.insertRow(-1);
+  var Cell = Row.insertCell(-1);
+  Cell.innerHTML = '&nbsp;';
+}
+
+
 function BuildSwitches()
 {
   ForVar('SWITCHES', responseText => 
@@ -121,13 +155,18 @@ function BuildSwitches()
       for(var i = 0; i < Switches.length; ++i)
       {
         var Switch = Switches[i].split(';');
-        if(Switch.length == 2)
+        if(Switch.length >= 2)
         {
           var Name = Switch[0];
           var Type = parseInt(Switch[1]);
+          var State = '';
+
+          if(Switch.length > 2)
+            State = Switch[2];
 
           SwitchNames.push(Name);
           SwitchTypes.push(Type);
+          AddUIElement(Name, Type, State);
         }
       }
     });
@@ -137,15 +176,61 @@ function BuildSwitches()
 
 window.addEventListener('load', (event) =>
 {
-  setTimeout(BuildSwitches, 100);
+  setTimeout
+  (
+    function() { BuildSwitches(); UpdateUI(); },
+    100
+  );
 
   setInterval
   ( 
-    function() { Update(); },
+    function() { UpdateUI(); },
     1000
   );
 });
 
+)"));
+}
+#pragma endregion
+
+#pragma region Switch_CreateUI_JavaScript
+CTextEmitter Switch_CreateUI_JavaScript()
+{
+  return MakeTextEmitter(F(R"(
+
+AddUIElement = function(name, type, state) 
+{
+  var Table = document.getElementById('SwitchTable');
+  var Row = Table.insertRow(-1);
+  var Cell = Row.insertCell(-1);
+  Cell.innerHTML = '<b>' + name + ':</b>&nbsp;';
+  Cell = Row.insertCell(-1);
+  switch(type)
+  {
+    case 1:
+      AddCheckbox(Cell, name);
+      AddEmptyRow(Table);
+      break;
+
+    case 2:
+      AddButton(Cell, name, 'SINGLE', 0); 
+      AddButton(Cell, name, 'DOUBLE', 1);
+      AddButton(Cell, name, 'LONG', 2);
+      AddEmptyRow(Table);
+      break;
+  }
+};
+
+
+)"));
+}
+#pragma endregion
+
+#pragma region Switch_BodyHtml
+CTextEmitter Switch_BodyHtml()
+{
+  return MakeTextEmitter(F(R"(
+<table id='SwitchTable'></table>
 )"));
 }
 #pragma endregion
@@ -220,13 +305,11 @@ void InstallVarsAndCmds(CController& c)
               {
                 case CSwitchDsc::Type_Switch:
                   //VERBOSE("SWITCH_STATE %s: %d", Dsc.Name, static_value_cast<bool>(Dsc.pSwitch));
-                  return MakeTextEmitter(convert_value<bool>(Dsc.pSwitch));
-                  break;
+                  return MakeTextEmitter(*Dsc.pSwitch);
 
                 case CSwitchDsc::Type_StatelessProgrammableSwitch:
                   //VERBOSE("SWITCH_STATE %s: %d", Dsc.Name);
                   return MakeTextEmitter();
-                  break;
               }
             }
           }
@@ -239,18 +322,27 @@ void InstallVarsAndCmds(CController& c)
 
     #pragma region SWITCHES
     /*
-    * @return a list of all switches: "name;type|name;type|..."
+    * @return a list of all switches: "name;type;val|name;type|..."
     */
     .SetVar("SWITCHES", [](auto p)
       {
         String Text;
         ForEach_Switch([&](CSwitchDsc dsc)
           {
-            char Buf[64];
-            sprintf_P(Buf, PSTR("%.32s;%d|")
+            char Buf[64], Buf2[16];
+            sprintf_P(Buf, PSTR("%.32s;%d")
               , dsc.Name
               , dsc.Type
             );
+
+            switch(dsc.Type)
+            {
+              case 1: // Switch
+                strcat(Buf, ";");
+                strcat(Buf, to_string(dsc.pSwitch->value, Buf2));
+                break;
+            }
+            strcat(Buf, "|");
             Text += Buf;
           });
 
@@ -265,6 +357,31 @@ void InstallVarsAndCmds(CController& c)
 
 #pragma endregion
 
+#pragma region AddMenuItems
+void AddMenuItems(CController& c)
+{
+  c
+    .AddMenuItem
+    (
+      {
+        .Title = "Switches",
+        .MenuName = "Start",
+        .URI = "/",
+        .CSS = ActionUI_CSS(),
+        .JavaScript = [](Stream& out)
+        {
+          out << ActionUI_JavaScript();
+          out << UIUtils_JavaScript();
+          out << Switch_JavaScript();
+          out << Switch_CreateUI_JavaScript();
+        },
+        .Body = Switch_BodyHtml()
+      }
+    )
+    ;
+}
+
+#pragma endregion
 
 //END Install and Setup
 #pragma endregion
